@@ -1,0 +1,916 @@
+<title>Homo Archivarius</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Nanum+Gothic+Coding:wght@400;700&display=swap">
+<style>
+/* Layout: 데스크탑 한 화면(최소 1100px). 인트로 타이핑 → 타이틀 → 정보 입력 → 메인(좌측 패널 + 중앙 점 캐릭터) → 정보 열람 창 / 리포트 오버레이 */
+/* 단일 다크 테마: 블랙 + 형광 그린, 정보 점만 옐로 */
+:root{
+  --bg:#000;
+  --g:#45FF3C;
+  --g2:rgba(69,255,60,.62);
+  --g3:rgba(69,255,60,.28);
+  --g4:rgba(69,255,60,.10);
+  --y:#F2FF3A;
+  --f-en:"VT323",ui-monospace,monospace;
+  --f-ko:"Nanum Gothic Coding",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--g);font-family:var(--f-ko);overflow:hidden;min-width:1100px}
+button{font:inherit;color:inherit}
+.screen{position:fixed;inset:0;display:none}
+.screen.on{display:block}
+.grid-bg{background-color:#000;background-image:linear-gradient(var(--g4) 1px,transparent 1px),linear-gradient(90deg,var(--g4) 1px,transparent 1px);background-size:18px 18px}
+.frame{position:relative;border:1.5px solid var(--g)}
+.frame>.cn{position:absolute;width:7px;height:7px;background:var(--g);border-radius:50%}
+.cn.tl{left:-4px;top:-4px}.cn.tr{right:-4px;top:-4px}.cn.bl{left:-4px;bottom:-4px}.cn.br{right:-4px;bottom:-4px}
+.btn{all:unset;cursor:pointer;font-family:var(--f-ko);font-size:14px;padding:8px 18px;border:1.5px solid var(--g);border-radius:999px;color:var(--g);letter-spacing:.04em}
+.btn:hover,.btn:focus-visible{background:var(--g);color:#000}
+.btn.ghost{border-color:var(--g3);color:var(--g2)}
+.btn.ghost:hover{background:var(--g3);color:var(--g)}
+.cur{display:inline-block;width:.55em;height:1em;background:var(--g);vertical-align:-.12em;margin-left:2px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+
+/* 인트로 */
+#intro{display:none;place-items:center}
+#intro.on{display:grid}
+#introText{margin:0;font-family:var(--f-ko);font-size:20px;line-height:2.1;white-space:pre-wrap;width:min(760px,80vw);min-height:360px}
+#introText .en{font-family:var(--f-en);font-size:30px;letter-spacing:.08em}
+.skip{position:fixed;right:28px;bottom:24px;font-size:12px;color:var(--g2);background:none;border:0;cursor:pointer}
+
+/* 타이틀 */
+#title{display:none;place-items:center}
+#title.on{display:grid}
+.tbox{padding:26px 64px;text-align:center}
+.tbox h1{margin:0;font-family:var(--f-en);font-weight:400;font-size:clamp(72px,8vw,120px);letter-spacing:.08em;line-height:1}
+.tsub{margin:18px 0 0;font-size:18px;letter-spacing:.5em;color:var(--g2)}
+.tstart{margin-top:44px;display:grid;justify-items:center;gap:14px;font-family:var(--f-en);font-size:24px;letter-spacing:.2em}
+#dotfield{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0}
+#title{position:fixed;inset:0;overflow:hidden}
+.tmain{position:absolute;z-index:2;left:50%;top:13vh;transform:translateX(-50%);display:grid;justify-items:center}
+.tbox{background:rgba(0,0,0,.78)}
+.tsub{margin:0;font-family:var(--f-ko);font-size:30px;font-weight:800;letter-spacing:.5em;line-height:1.2;color:var(--g);text-shadow:0 0 12px rgba(69,255,60,.55);background:rgba(0,0,0,.7)}
+.tline{margin:8px 0 0;font-family:var(--f-ko);font-size:15px;font-weight:700;letter-spacing:.04em;line-height:1.5;color:var(--g);background:rgba(0,0,0,.75);padding:2px 0}
+.tstart{margin:64px 0 0;background:rgba(0,0,0,.7);padding:8px 16px}
+.hud{position:absolute;z-index:2;font-family:var(--f-en);font-size:18px;letter-spacing:.12em;color:var(--g);line-height:1.3;margin:0;padding:0;list-style:none}
+.hud span{display:block;font-family:var(--f-ko);font-size:11px;letter-spacing:.06em;color:var(--g2)}
+.hud-tl{left:32px;bottom:64px;line-height:0}.hud-tl p{display:block}.hud-br{right:32px;bottom:59px;text-align:right;font-size:28px;line-height:1}.hud-br span{font-size:14px;margin-top:4px}
+.hud-tr{left:32px;top:22px;text-align:left;font-size:34px;line-height:1.15}
+.hud-tr b{font-weight:400;display:inline-block;min-width:230px;text-align:right;text-shadow:0 0 10px rgba(69,255,60,.6)}
+.hud-tr b.zero{animation:blink 1s steps(1) infinite}
+.hud-bl{left:32px;bottom:64px;height:calc(12px*1.9*6);display:flex;flex-direction:column;justify-content:flex-end;font-family:var(--f-ko);font-size:12px;letter-spacing:0;line-height:1.9;color:var(--g2);width:min(520px,40vw)}
+.hud-bl li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hud-bl li:last-child{color:var(--g)}
+.truler{position:absolute;left:0;right:0;bottom:0;z-index:2}
+
+@keyframes boot{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes glitch{0%,92%,100%{transform:none;opacity:1}93%{transform:translate(3px,-1px);opacity:.75}94%{transform:translate(-4px,1px)}95%{transform:none;opacity:1}96%{transform:translate(2px,0);opacity:.85}}
+@keyframes blink{50%{opacity:.25}}
+
+/* 입력 */
+#input{display:none;place-items:center}
+#input.on{display:grid}
+.panel{width:640px;padding:28px 34px 30px;display:grid;gap:18px}
+.panel h2{margin:0;font-size:16px;font-weight:700;letter-spacing:.06em}
+.row{display:grid;grid-template-columns:92px 1fr;align-items:center;gap:12px}
+.row label,.row .lb{font-size:14px;color:var(--g)}
+.row input{all:unset;border-bottom:1px solid var(--g3);padding:6px 2px;font-size:15px;color:var(--g);width:100%}
+.row input:focus{border-color:var(--g)}
+.row input::placeholder{color:var(--g3)}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{all:unset;cursor:pointer;font-size:16px;padding:8px 20px;border:1px solid var(--g2);border-radius:999px;color:var(--g2)}
+.chip[aria-pressed="true"]{background:var(--g);color:#000;border-color:var(--g)}
+.chip:focus-visible{outline:1px solid var(--y);outline-offset:2px}
+.err{margin:0;font-size:12px;color:var(--y);min-height:16px}
+.panel .acts{display:flex;justify-content:flex-end}
+
+/* 메인 */
+#main{display:none}
+#main.on{display:grid;grid-template-rows:96px 1fr 64px;grid-template-columns:360px 1fr}
+.top{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 32px;gap:24px}
+.logo{padding:8px 20px;font-family:var(--f-en);font-size:30px;letter-spacing:.08em}
+.status{display:flex;align-items:center;gap:22px;font-size:13px;color:var(--g2)}
+.status b{color:var(--g);font-weight:700}
+.side{padding:4px 18px 0 32px;display:flex;flex-direction:column;gap:18px;min-height:0;overflow:hidden}
+.box{padding:14px 16px;display:grid;gap:8px;min-height:0;align-content:start}
+.box h3{margin:0;font-size:13px;font-weight:700;letter-spacing:.04em}
+.box p{margin:0;font-size:12px;line-height:1.7;color:var(--g2)}
+.words{display:flex;flex-wrap:wrap;gap:6px}
+.words span{font-size:12px;padding:2px 8px;border:1px solid var(--g);border-radius:999px}
+.words .none{border:0;padding:0;color:var(--g3)}
+.log{margin:0;padding:0;list-style:none;font-size:11.5px;line-height:1.75;color:var(--g2);max-height:220px;overflow:hidden}
+.log li b{color:var(--g);font-weight:400}
+.stage{position:relative;min-width:0;min-height:0}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hint{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);font-size:12.5px;color:var(--g2);white-space:nowrap;pointer-events:none}
+.ruler{grid-column:1/-1;margin:0 32px 18px;border-bottom:1.5px solid var(--g);background:repeating-linear-gradient(90deg,var(--g) 0 1.5px,transparent 1.5px 28px) bottom/100% 22px no-repeat}
+
+/* 오버레이 */
+.ov{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.72);z-index:10}
+.ov.on{display:grid}
+.win{width:900px;max-width:calc(100vw - 80px);display:grid;grid-template-rows:auto 1fr}
+.win-h{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid var(--g3);font-size:13px}
+.win-h button{background:none;border:0;cursor:pointer;color:var(--g2);font-size:13px}
+.win-b{display:grid;grid-template-columns:1fr 260px;gap:0;min-height:0}
+.read{padding:22px 26px;display:grid;gap:12px;border-right:1px solid var(--g3);min-width:0}
+.read .cat{font-size:12px;color:var(--y)}
+.read h4{margin:0;font-size:22px;line-height:1.4;font-weight:700;text-wrap:balance}
+.txt{height:300px;overflow-y:auto;padding-right:14px;font-size:16px;line-height:2;color:var(--g);scrollbar-width:thin;scrollbar-color:var(--g3) transparent}
+.txt p{margin:0 0 1.1em}
+.mask{cursor:pointer;color:var(--g3);background:var(--g4);padding:0 2px;letter-spacing:-.05em;border-bottom:1px dashed var(--y)}
+.mask:hover{color:var(--y)}
+.mask.got{color:#000;background:var(--y);letter-spacing:0;border:0;cursor:default}
+.gauge{padding:22px 20px;display:grid;align-content:start;justify-items:center;gap:14px;text-align:center}
+#ring{width:200px;height:200px}
+.gauge .pct{font-family:var(--f-en);font-size:40px;line-height:1}
+.gauge p{margin:0;font-size:12px;line-height:1.7;color:var(--g2)}
+.gauge .wc{color:var(--g)}
+.modal{width:560px;padding:30px 34px;display:grid;gap:14px;font-size:15px;line-height:1.9}
+.modal p{margin:0}
+.modal .acts{display:flex;gap:10px;justify-content:center;margin-top:8px}
+
+/* 리포트 */
+#report{background:#000;place-items:stretch}
+.rep{display:grid;grid-template-rows:96px 1fr 64px;height:100%}
+.rep-b{display:grid;grid-template-columns:auto 1fr;gap:48px;padding:6px 64px 0;min-height:0;align-items:start}
+.card{display:grid;gap:12px;justify-items:start}
+#ch{display:block;image-rendering:pixelated}
+.card .nm{font-family:var(--f-en);font-size:30px;letter-spacing:.06em;line-height:1}
+.card .stg{font-size:12px;color:var(--g2)}
+.rinfo{display:grid;gap:16px;align-content:start;min-width:0;max-width:640px}
+.rinfo .box{padding:16px 20px}
+.kv{display:grid;grid-template-columns:90px 1fr;gap:4px 10px;font-size:13.5px}
+.kv span{color:var(--g2)}
+.big{display:flex;gap:40px;align-items:baseline}
+.big div{display:grid}
+.big b{font-family:var(--f-en);font-size:52px;font-weight:400;line-height:1}
+.big span{font-size:12px;color:var(--g2)}
+.line{font-size:15px;line-height:1.9;margin:0}
+.rlist{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.8;color:var(--g2)}
+.rlist li::before{content:"> ";color:var(--g)}
+.racts{display:flex;gap:10px;flex-wrap:wrap}
+.analyzing{font-family:var(--f-en);font-size:26px;letter-spacing:.1em}
+
+#toast{position:fixed;left:50%;bottom:140px;transform:translateX(-50%);padding:10px 18px;border:1px solid var(--g);background:#000;font-size:13px;z-index:30;display:none}
+#toast.on{display:block}
+#toast.mid{white-space:pre-line;pointer-events:none;top:50%;bottom:auto;transform:translate(-50%,-50%);padding:22px 36px;font-size:17px;text-align:center;line-height:1.7;box-shadow:0 0 0 1px var(--g),0 0 40px rgba(69,255,60,.25);z-index:40}
+@media (prefers-reduced-motion:reduce){.cur{animation:none}}
+.endpad{display:flex;align-items:flex-end;justify-content:center}.endmark{color:var(--g3);font-size:12px;margin:0 0 8px}
+body{word-break:keep-all;overflow-wrap:anywhere}
+.box p,.line,.rlist,.kv{word-break:keep-all}
+.read{gap:0}
+.read .cat{margin-bottom:10px}
+.read h4{margin:0 0 76px}
+.txt{height:320px}
+.txt p{margin:0 0 2.2em}
+/* 리포트 */
+.rtop{padding:0 64px}
+.rtop .logo{font-size:44px;padding:10px 22px;box-sizing:border-box;white-space:nowrap;text-align:center}
+.rtop .logo .lt{display:inline-block}
+.rtop{justify-content:flex-start}
+.rtacts{margin-left:auto;flex-wrap:nowrap}
+.rinfo{align-items:stretch!important}
+.rinfo:has(.rmid){align-content:stretch}
+.rarch{position:relative;display:block}
+.card .nm{min-height:30px}.card .stg{min-height:16px}
+.rmid{display:flex!important;flex-direction:column;gap:16px;min-height:0}
+.rmid>.box:last-child{flex:1;min-height:0}
+.rarch>.box{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0}
+.rarch .arch{flex:1;min-height:0;max-height:none}
+.rinfo{grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-width:none;gap:20px;align-items:start}
+.rcol{display:grid;gap:16px;align-content:start;min-width:0}
+.ibar{display:grid;grid-template-columns:72px 1fr 44px;align-items:center;gap:10px;font-size:13px}
+.ibar .cells{display:flex;gap:3px}.ibar .cells i{width:14px;height:14px;border:1.5px solid var(--g);box-sizing:border-box}.ibar .cells i.on{background:var(--g);box-shadow:0 0 8px var(--g)}
+.ibar em{font-style:normal;color:var(--g2);text-align:right}
+.arch{list-style:none;margin:0;padding:0;display:grid;gap:4px;max-height:calc(100vh - 330px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--g3) transparent}
+.arch button{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:14px 1fr;gap:10px;align-items:start;padding:7px 8px;font-size:13px;line-height:1.5;cursor:pointer;border:1px solid transparent}
+.arch button:hover,.arch button:focus-visible{border-color:var(--g);background:rgba(69,255,60,.06)}
+.arch button i{width:12px;height:12px;margin-top:4px;background:var(--g);box-shadow:0 0 6px var(--g)}
+.arch button small{display:block;color:var(--g2);font-size:11px}
+.arch .lock{display:grid;grid-template-columns:14px 1fr;gap:10px;padding:5px 8px;font-size:12px;color:var(--g3)}
+.arch .lock i{width:12px;height:12px;margin-top:3px;border:1.5px solid var(--g3);box-sizing:border-box}
+#info.ontop{z-index:20}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* 시작화면 제목: 직접 디자인한 블록 레터링 (이미지 마스크 + 사이트 그린) */
+.tlogo{display:block;position:relative;width:clamp(760px,74vw,1240px);aspect-ratio:2668/276;filter:drop-shadow(0 0 12px rgba(69,255,60,.5))}.tlogo i{position:absolute;top:0;bottom:0;background:var(--g);-webkit-mask-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAACmwAAAEUCAQAAACGxkPaAAAng0lEQVR42u3d345cV3Yf4B+7u7qbA18FCTLFBosaOnmAiIZ9kYfIQ8gybOYBbCEmk7AN6AUcjgGNHiLIS2SMoeYBguGoiy7WBMj1sP+ounNRTYmkSJHdrL3PPud8n65G0HTV2eff2qvW3uvGRQAAAAAA+mXLEAAAAAAAfSOxCQAAAAD0jsQmAAAAANA7EpsAAAAAQO9IbAIAAAAAvSOxCQAAAAD0jsQmAAAAANA7EpsAAAAAQO9IbAIAAAAAvbNjCAAAADZkKzc2/jcvcj6SI235eAFokMQmAADAZuxnmp0NJ/wu8l2WOR7Bkf5wvIucupgAeD+JTQAAgE3Yy3/IP+TWhjf8Os8yD/KkqdTmfu7lMNMiW5ud5yh/nWdZuaAAeJ+fSmwOcRFFH4+p3BKPISl/ZW0V+j36fDB3grthTPfDkJ7hzr8x7/M9N97z08f3TbfP5mHFMSWOZzPHsp1/k/u5lz/Z+BHfzqP8ZebNpPq2M82j/Hn2i/z1Vc6z65nY3BPU+HbzXGz9jSRvNIwx7/X99e7E5hAXUfTxmMot8RjW5V36yipzHtbf+6zSA/yHx9+k0FXlbhjL/TCkZ7jzb8z7fM+N9/z08X3T7bO5ZBwzjGt/U8eyyv/Lr/If8yfZ3vgx38qkqftwklvZ3/hxrp3l/74SIXsmtnHnGt9unoutv5HkjYYx5j2/v3beOVQllhasF1F8kxcdXZ79O6aSSzyGpPSVdTOfFjkP51nmMMvLdOb6Nj0tktzcyu73j7+tTPOgyFVVdplUqbMw1PvhyeBSm66A+uffmLd9z405Rujj+6bLZ3Opa6WrYypxhjZ3LNdLyX1YNNeaUt9odRkhr5q4zj1BxQRdPhdL5jA28S1b/37GfCT3142Lt/3n25nlV/mLAksLTvJNvshvOrhE+3hM5b7z8JS8svbzZ/kyn2avwN8+yzLf5eL72/Qw8yy+D4c/roLz1QrNg8y+T2beyE6mhX7zP86vCy2TKnkWhqfceeiOK6D++Tfmbd9zY48R+vi+6erZXPJa6eKYSp2hTR3Ldv40/yt/uvFKxlV+l/+U/9PQUvR/n/9Z4Dive6zmTWWvdjFBN8/Fctf1Zr5l69/PmI/m/npXxWappQU/y6d5lM86uUT7eEwll3gMS7mzsN5B6NP8rNCD805++HXhk3yV+fc1nC8Xql89vbmVG68sN19XaM5y8H0y80ax33dKLZMqexaGp73laq6A/p1/Y97+PTfuGKGP75vuns3lrpX6x1TuDG3yWM4Lncdpvm0msTkp9jP5dcfQvKnc1S4m6O65WOq63tS3bP37GfOR3F87P5EaKWOv8Evwp/TxmBT7d38WJpkW/HVy67Wg4Rc5yNeXNZwvF6qfvLIP57uTnK/voLn3ynLzdYXmbqVrqdSnlD0LwzO8J4croP75N+bt33NbxrxnT5utAV6h9Y+p3Bna1LGcZZlPNj7p3M40DzoqD3nbtznIg0wbm1qbN5UbKzFBd1fiVuPfcmuA9/NYx7zH99eOV45jchYaOr9b2X+lhvOTfJ2TV/bhfHsN59vqM6evJXpvDOIKdZe5wzHm4Mqn9TO03h/y68w2nvRrKbU0ySyzga0OwZMR6KkdQwDNhg3rheqf/GQN59vrMycDSWYCAPTLWZY5KfKX9xpZjL6uHj0oWK957jIC4ENJbELLtvL6Ppxv1nAOtz4TAKCfTga/GL3sDptnr/yEDwDvIbEJ7Xt3Daf6TACAlpRdjN7K8u+tguO3yGGWzbRJAqBxEpvQL2/WcEppAgC0pFzF4dYoRm+euYpNAD6UxCb0kWQmAECrhr5HZMl6zWUOs1CvCUD3LyUAAIAxKpXabGH2ZodNABoisQkAALA5pZJzLeyyuX3ZulJPdACaILEJAACwKevl1Jtvf7NOKR4UTCl+mL2GmhgBMHoSmwAAAJtzlmVOCvzdSWaZdZxUnGSavYJ/X70mAFcisQkAALBJJ0UWo2/noPAy8Pd/g7IL0e2wCcAVSWwCAABsTqnF6C3sslnyG6yyKDRuAAyWxCYAAMAmlas87H7+tlVw1OaZq9gEoF8vRgAAgGGxV+RVretcF+o1AbgKiU0AAAAzuK4/3Q6bAPTstQgAADBEZWo2u91ls/Snq3MF4IokNgEAADbrrFBf9Gke5KCjvuile6IDwJVJbAIAAGxSuf0iJ5ll1lnN5l7nXdkB4DUSmwAAAJtVqsP3dg46q5qcZJq9gn/fQnQArkxiEwAAYLNWWeQwyyI1m91UTZZeiK51EADXILEJAACwaeUSdV3N4UqmVMslggEYNIlNAACAzRve0upys8dSS/cBGDiJTQAAALO47j61XLMlALwSAQAAuLIyNZvd7LJZ9lPtsAnAtUhsAgAAbF6ZZN26ic9B5b7opVsH6YkOwLVIbAIAAGzaenl1mb7os8yq12zuddSNHQB+gsQmAADA5p1lmZMCf3c7B4WrJ39skmn2Cv599ZoAXIvEJgAAQAknhXaOrL3LZumF6HbYBOCaJDYBAAA2r9xi9PrzuJKp1FUWxcYJgIGT2AQAAChhSJWIWwVHaZ65ik0A2no9AQAAjFu5vSOHMpNb17Uu1GsCMObXIQAAwFjU3mWz5LzRDpsANPmCAgAAGLcSNZvrZj4H1fqil06j6okOwDXtGIIRh1gXnXzuDel03A3uBed/5FeAe84Z+lgraRB64yzLfFIgATnJLLNKC7i3c1C0J7qn4pjfW8YWRIAfGf9JbI7VaRb5roOL9kZ2cpBdJ4DR3w03spNp9g2/p6Exd885Q9cKvI9y6lTRA+v9I7/ObONJwXWy8bPMK6Q210nUyWjP4nGWHb23hh8piAlg7M+6DcR/EptjDbGe529y1EG1w1bu5J9ye8S/9/741rx45RW7NYhPcjd82L1wK/+QT7PnFHgaGvNKIz7NYe6ZxjR8V1zFRb7Lc61G6IWzLHNS5C/X2mWz/LL3tp83x3mSB1l28N4afqQgJgDPug3EfxKbY3WaozztYEKwnaiweO3h8cNvIutfDneLpBzPc/rGJ6mb7f5uWOZxvhz1si5Pw1NjXtWzPMyvClRNOUNdhbYWo9MXJ4UWo9frl1A2hdp266BVlnmYf86xSEFMAAPW3bNuA/GfxOZ4nWfVyaTFNOQHr/8mspVpHmSWg+8Dx4+rq/yhQvMsi8xz+MonqZvt/m7Yzr/KX+ZfOwuehsa84jP3ua67jd8VMNTJYpnF6DVtFRyfRQ6zbPiZc5bnORYpiAlg4Lp71n00iU3oMsx9/TeRb/N5ZnmQabbysoJzco305nkucvZ9heZ5ljnMPIvvX97qZtswyb8d8W5V0M3kCaCLyWK5isStAYzOPPPGU0zeHmICcFc0TGITugzkXv9NZJXfZ5HPspMbeVnBOc3eK4t/3p3kfLU+c5mTLL+v0LzId1nm9LXHlBd5G+x0CgAmi9c3yTTf9rq+el3PulAjDsB1SWxCS2HueY5zlBuX/+vbfJa9y/TmDzWcP96F89UdNM8vU5onr9QG2IcMAKClmG8T1k19Pq+Q2iz5U2zbO2wC0DyJTWg38F3lKDfy7Rs1nK/uwrkOB1/dQXNdn3kmmQkA0IizQu2DJpllVrzesXT3dTErAB9BYhNadp6X6c2113fhXP8Xb+6gKaUJANCOcu2DtnOQB/ks84KpzfVnTLU7BKBNEpvQvldrOF/dhTN5+w6aAAC0Y70DegmlqylfVoWW+wwxLAAfRWIT+uX1XTgTFZoAAK07KbQYvXQrwvU+ngfF6jXtsAlA0y9CoITzrF75R1oTAKBlq8vmjn3s/V2yJnSVRW/HBYBGSGwCAACUVLIysfSMbqvgqMwzV7EJQMuvQQAAgLErtcam/C6bpazrWBfqNQH4GBKbAAAAfVR6D8yy80U7bALQ9IsKAACApFTNZtmu5aXrQe0VD8BHktgEAAAoq1R14nYO8iDTIjWb63rQacF6UAD4SBKbAAAAJZXcT7JkVeVe0YpN9ZoAfDSJTQAAgLJKdgAvNaebZJq9giNih00Amn0JAgAAsLbKIodZ9qgHeNmF6P0bDwCaJLEJAABQWv8qFEsuci9ZwQrAiEhsAgAAlFduT8mtnv3dknuOAjAqEpsAAAD9NSna4qcMO2wCsBESmwAAAH213gvzoMBemGXninqiA9D8ywoAAIC1Msm8SWaZbbxms491oACMjsQmAABAeaWWX2/nYOP9y0v8TQDYOIlNAACA0ko2zNl8dWWZKtAfWIgOwEZIbALgTegNbMwByjvLPPNCLXM2+4Qrt2/ny5HoU+sgby2jCzRsxxAAMGKT3MqzHFf/3P3cGu3OZcYcGKtVFjnM15kVSRhuNlFTcofN9Tgsi9SuemuJCYwujIzEJgDjtZ1pHuVBlpWXxG1lmkcj3bnMmANjVq5ScZJpvt1oqnCr4CiUq1z11hITGF0YGYlNAMZsP/fydb7LRdVPvZGdTLNvzI05MDplEjjrpeOfZd6DKsiSe416a4kJjC6MjsQmAOO2nzuVw+l1SL1lzI05wMZMMs3eBv9eySdmv3bY9NYyukDTJDYBGDuhrTEHqKfUotu9DS5GL7nDZskx8NYSEwAeIgAAABRRqlpxvRh9M7sGbvJvAUBREpsAAAA1lNxfcpNVlntFKzbPXQgAbIrEJgAAQB0lO4Jvam636f063xyBfu2wCUDTJDYBAADqWGWRwywb7glediH6umZ12Zue6AA0TmITAACglpIVi5uZ3ZVtHXSiYhOA1l59AAAAfIhSe0xuLiFZbpZ4lmVOXAIAbIrEJgAAQN+tl5AfNN3L3EJ0ADZMYhMAAKCmMjWbk8wy20DNZsk5otZBAGyUxCYAAEA9pZJ72znYQNufsjtslluID8AoSWwCAADUUnI59scnJTeTHAWASiQ2AQAA6inZQOdj53ebWs7+Luo1AWjqxQcAAMBVnDS602TpBkR22ARgwyQ2AQAA6inbG/zjZngld9hcZaEnOgAtvfYAAAC4mnKVix+fmNwqeNTzzFVsArBJEpsAAAB1ldlrsvRS8o+xrlNdqNcEYJMkNgEAAIbhY5v/lJwf2mETgI2T2AQAAKitVM3mQR5kes2azZI7bJY7ZgBGTGITAACgrhZ32fy4pCgAdEBiEwAAoKay+01ed473scvY30e9JgDNvPQAAAC4nvY6hJduPGSHTQAKkNgEAACoa5VFDrNsqmaz5A6bZY8XgNGS2AQAAKitxV02twoebWsVqgAMgsQmAABAfaX6opddUn4dZfcUBWDEJDYBAACGo3QToOuwwyYARUhsAgAAdKFUzeZBHmR65ZrNrR4eKwAjJ7EJAABQX1u7bJZsHQQAhUhsAgAA1FZ238mrzvOuW+X5odRrAtDECw8AAICP11Kn8LL7ctphE4BCJDYBAADqW2WRwywbqNks20l9XZu61BMdgG5fdwAAAGxKO7tslt1h80TFJgBlSGwCAAB0o1Rf9KtXYJabGZ5lmROnGoASJDYBAACGpeyemVdhITpAH/Q2P7jj3AEAAAzKusv5Z5l/YEKx5IRW6yCA1k1yK89y3Pi3vHjbOgeJTQAAgK6cF/q7V9k1s+wOm+WOEYBN2M40j/Igy6af1xf5LoucvvmvJTYBMKW8qP6ZN2wG05tz9X4rU3bg2s6yzCeFupF/6JtmvSPntNC38PYRKYgJoH37uZev812T99UPd/1R/jrP3lyJILEJwLgdZ1n9FX4jO5lm3+Bf0WkWTYZb5zn68W/HAB9gvf/kV8VSmx9qr2jFZt8TPSIFMYGYgDHYz52m05rJKsnuj/+1xCYAY3acJx0sutjKNIe5Z8JyxVDmee7nqMH2Exf5Ls+1xQCu5SzzzK/Yv/wq75sPMck0ewWPsN87bIoUxARiAsZiq5/fUGITgDGHxcs8zD93sE32szzMrzKz7O8aCYAWNzW/sPAMuPabaJHDfF3kjTDJNN++N8VSdiF633uiixTEBGICaJzEJgDjDoqf57iD6dZxnusQe0Xb+Xn+Sz7P3MgBA3sTlaloXCcsP6QvetnWQSc9r9gUKYgJgKbZkBiAcTsf2ef22SSz3M2dt+2tA+BN9Jan5ocuMS83KzzLMifOj0hBTACUIrEJAPTDdm7ncR7ntoV5AB+kbFOg9+v7QnTEBEDzJDYBgL7YzZ3czaxgkwuALpSpzfvQ3TNLzgn73joIMQHQOIlNAKA/JjnIo3yqTywwIOWSfx+ye+akcFWnBdWICYCCJDYBgD7Zz6d5lANLz4CBKLtc+33zve0cFOyJDmICoDCJTQCgX/Yys/QMGJCyDXZ+esY3ySyzghWb6jUREwBFSWwCAP2yfbn07KahAAbipKPF6OtdOMvVu9lhEzEBUJjEJgDQN/u5ly9zzzQGGIRyi9Hf3z6o5A6bqyz0REdMAJQlsQkA9M/Ny2mMhgHAEJRtH7TX0YzwLPPMVWwiJgBKktgEAPo5jdEwABiOcntR7hXuev4u6zrUhXpNxARASRKbAEA/aRgA8D7vX4xejh02ERMAxUlsAgB9na5rGAAMR6mazZ/eRXOrl8cEYgKgyosMAKAcDQOAoShZ3fjuOd+ko2XqICYAir/kAABap2EAMASl96N8+6xvOwdFl6mr10RMABQnsQkA9Hsao2EA0H8lO4i/qy5zkllmxSo27bCJmACoQGITAOg3DQOA/ltlkcMsC9Rsvqt90Prfl0oBrWtQl3qiIyYAypLYBAD67WXDAEvPgD4rV+E4yfStiZ6yO2yeqNhETACUJ7EJAPTd/uXSMy0wgD4rtyfl3jtSmOVmg2dZ5sQpRUwAlCaxCQD0315muZs72TUUAG9412L0cixER0wAVCKxCQAMYdp+O4/zOLc1DAB6rFTN5tsXnZecC2odhJgAqEJiEwAYgt3cyV0NA4AeK5kM/PG8r+wOmyUX1oOYAPiJFxwAQB9NNAwAemy9fHtRbPn26zO/7RwUXZ4urYmYAKhCYhMAGIqXDQMsPQP66CzzzAt2Rp+89r9nmRWr2LQQHTEBUInEJgAwHHuZWXoG9NQqi0Itd95sH7T+36VSPloHISYAqpHYBACGY/ty6dlNQwH0ULlKx0mmryV4yu6weaJiEzEBUIfEJgAwJPu5ly9zzzQG6KVye1PuvZHKLDcTPMsyJ04lYgKgBolNAGBYbl5OYzQMAHjpzcXo5ViIjpgAqEhiEwAY3jRGwwCgr0rVbL6++LzkPFDrIMQEQDUSmwDA8GgYAPRTyaTgD3O/sjtsllxQD2IC4B0vNwCAodAwAOij0su4ty6fkLWWpYOYAChMYhMAGCINA4A+Ktl454c6zb2iFZvqNRETANVIbAIAw6RhANBHJ4UWo/9QpznJtOCyXDtsIiaAcvx09CMSmwDAcKcxGgYA/VJyMfq6YnOr6EL0VRZ6oiMmgELO8jzHWTX9T/XU647rAgAYrHXDgGX+aCiA3kxbS7YP2krZ1kFnmWeuYhMxARSwyjIPc5hpw0WKN7KTad3aaIlNAGC41g0DvshvcmwwgJ4oV+0yyTTzlFu3t643XajXREwARRznST7LTm40+w23Ms1h3W0fJDYBgPpT9nq/M+/n0zzK5yqIgNFb77L5V0WX4tphEzEBlHSco4bTmknyLA/zq8zqbfsgsQkA1HSaRVJ1icpeZrmbG5nn1PADvVCqZrNs26Cy3x0xgZgA+vCUPc7zuj8daB4EANSzyvP85/xVnuRFtc/czu08zuPc1jAA6IWSVY/7uZM72TXIiAmcACikcupVYhMAqOk0v8//zt/lScUdrnZzJ3czK16nBPDxSvZF386t/GP+MbckdRATGH4YBolNAKCu87zIN3lYtb3EJAd5lE/r9mgEuJazLHNS6G/vFq7YtBAdMQFQlcQmAFDfSeaZF5u4v826YcCBKiWgF8/IcovRtwrOAbUOQkwAVCaxCQDUt8oiD/NNxV211g0DLD0D+vCELLcYvfSTvY/fGzEB0GMSmwBAF47zJF9UbhiwXnp20+ADjetn5eNZ5pmr2ERMANQksQkAdOPF5TSmXsOA/dzLl7lnGgM0r397Va7rTBfqNRETADVJbAIA3U1jajcMuHk5jdEwAGhd/1KbdthETABUJ7EJAHSnfsOAmxoGAD3QzyShnuiICYDKJDYBgO68bBhwXPEzNQwA2n82LrXhQUwgJgDeT2ITAOjS8eXSs3qVSRoGAO07y7Jq5domqNdETABUJ7EJAHTrJPM8zVFOq32ihgFAH56N/VqMbodNxARAByQ2AYBurfIs93M/zzQMAPj+ydivxeirLCyeR0wA1CexCQB07TRHeaphAMAr+lUBeZZ55io2ERMAtUlsAgAtTIk1DAB4XX/2rFzXly7UayImAGqT2AQAWvCyYUC9afHLhgGWngF8LDtsIiYAOiGxCQC04STzykvP9i+Xnk0MPtCkc98VMYGYAPgpEpsAQBtWl0vPXlT8zL3Mcjd3smv4geaogkRMICYA3kNiEwBoxXGe5Is8qTiN2c7tPM7j3NYwAGiMfSsRE4gJgPeS2AQA2vHichpTr2HAbu7kroYBQIP61GncQnTEBEAnJDYBgLamMbUbBkw0DACatMoih1n2oGbTonnEBEBHJDYBgLZ01zDA0jOgLf1IGPYnAYuYQEwAgyOxCQC0N0XuomGApWdAe/qwxLtPS+YRE4gJYGC6SGzafwUA+CldNAxYLz27afABrkSTI8QEQIfqJzbtvwIAvE/9hgH7uZcvc880BmhM+2UhZniICYDO1E5srvKH/EP+4Pc8AOA905jaDQNuXk5jNAwA2tGPpKE1eYgJgI5sOVYAoEn1Gwbc1DAA0ShNWS/z1pYHxARAI+HVdn6ev8+tTLJd+Z/93MrECQeAHk3o1w0Djit+poYBlDPJrexXj4G3pVN77izLqsmc61CviZgA6MxOByHdLP8uk8qvv61M8yhTv7YAQI8c55s8zFeZVftxct0woG6TAsZhO9M8yoMsq0fBd7Jr+HvtJMt80vA8xg6biAmADtVPbG7ndn6Z73JR9VNvZCdT+2MAQO8m9PM8zUVm1VIz64YBpjGUuba+7iQKvuXH/R5bL0b/OrNGz+IqC4vlERMA3dnp4DN3c6dyQLcO6izDAYD+Temf5X5+kV9WrFe6eTmN+U3VBW+Mwb4omGtouyLyLPPMVWwiJgC6stPJpwquAIAPc5qjXGSeaX5W7TPXDQM+z7dqkBAF04B297Bc15MuPCsREwCCKwCAtznTMACg2Se0HTYREwAdktgEAFq3bhhQsyZo3TDgU/tzA004991ATAC8jcQmANC+k8wzz0nFT9zPp3mUg2q9VwHeRVUkiAmAd5DYBADat7pcelazK+leZrmbO9V6rwK8/fm31HccxATA20lsAgB9cJwn+SJPKk5jtnM7j/M4t6v1XgV4m7Msq1anXYWF6IgJgE5JbAIA/fDichpTr2HAbu7kroYBQOdOGl2MbpE8YgKgYxKbAEB/pjG1GwZMLhsG3DT4QGdaXYy+ysIieUYYE2giBE2R2AQA+qOLhgH38mXumcYAHWqzMvIs88xVbDKqmGDdRMhydGiIxCYA0B9dNAy4aRoDdK69vSzXdaQL9ZqMKibYy8xydGiLxCYA0Cf1GwaYxgAtaC+1aYdNxhcTbNuiBlojsQkA9Ev9hgGmMUDX2kwi6onO+GKCl1vUiAmgERKbAED/pjG1GwbYaRPoUqvtg2CMMcFNMQG0RGITAOif+g0D7LQJdOksy6rPvA+hXhMxAdA5iU0AoH9eNgw4rviZdtoEunTS2GJ0O2wiJhATQAMkNgGAPjq+XHpWb1ptp02gO60tRl9lYXE8YgIxAXRPYhMA6KeTzPM0Rzmt9okaBgDdaatC8izzzFVsIiYQE0DXJDYBgH5a5Vnu536eaRgAjEI7e1qu60cX6jURE4gJoGsSmwBAX53mKE81DACozg6biAnEBNAEiU0AoM9Taw0DgPE4911ATAC8SmITAOizlw0D6i09e9kwwNIzoC5VkiAmAN4gsQkA9NtJ5pWXnu1fLj2bGHygmrb2tVSviZhATABNkNgEAPo+2V8vPXtR8TP3Msvd3Mmu4QeqaacTudpRxARiAmiExCYA0HfHeZIv8qTiNGY7t/M4j3NbwwCgmlUWOcyy85rNVr4HiAkAiU0AYABeXE5j6jUM2M2d3NUwAKiqjUrJdipHQUwAoyexCQAMYxpTu2HA5LJhwE2DD1TT/d6Wbe31CW3FBJoIQXUSmwDAMHTRMOBevsw90xhgVOywiZjgbTHBuomQ5ehQmcQmADAMXTQMuGkaA4yQnuiICX5sLzPL0aE+iU0AYCjqNwwwjQFqk1SENmOCbVvUQBckNp171xwAw1G/YcAQpzHe1dAuy8Ch3Zjg5RY1Upv9jUXEQD0cxR0jPlKT3Mqzio/4Hx71tzIx/DT34K2/iHTbSxOKTWO+ycN8lU+q3dnracwX+U0H79UhxQhXcaFmjZFaN+6p+YR7G/cfYoJ3uTmwmGBssUg/8hVbudH096s+ihKb47SdaR7lQZaVw5KtTPMoUzuR0ZTd3OkgRN/KnewafChi3TBgmp9V+8T1Tpuf59sBdAnuKka4iot8l6UpIyN1lnnmne7sq2YUMcFYYoKxxSL9yFfsZ5qdhlObHYyixOZY7edevs53uaj6qTeyk6nesTT22ryVX1a/F9Z3wy1Jfihi3TDgy/xZxTfOeqfNZf4oRqjgPMs8qLq4ENp6wh3m68w6iiLWn7+UskFMMIqYYFyxSB/yFfu5l8NMG17918EoSmyO+VFxp4Mpyw3Lb2nObif3grsBSjq+XHo2q7YQZr3TZu3GRcOKEa7idh7lLzOXWmGUuq2YXFeMqthETDCWmGBcsUjrM7R1LeufN558vWGPTeqRVAH3AgzVSeZ5movMqm368HKnzWFMY1p/Ltqzm3HrbqOI9R6fCz8qICYYUUwgFmnJJLeyb93f67pJbJ6rjgIAik6+n+V+fpFfahhgutMQMTD9Z4dNxARiAkRATekisXmcZUf72R1o1QEAI3Gao1xoGEBT1+RCDMyGnI/0s0FMALyhfmLzOE866bS5lTv5p9xWsgsAI3F22TDgXm5W+0wNA3iXVZ7nb3IkBmYjT7dlxcozGFJMoIkQDE7txOYqf8h/yz93UI69neTUCQeAETnOk3xRdRrzsmGApWf82GmO8rR65Y4YeHjW+1x+1VFqU70m/Y0J1k2E6t05YgKooovV+ec5z6qDf7yEAWBsXuSbPKza6GI/n+ZRDrS24a1RsBiYTeiuM7kdNumzk8wzz0nFTxQTQAW1E5vb+Xn+Pj+3cAIAGOg0Zi+z3M0duxoChayyyGGW1et/17WiSzsG0uM752G+qdqpXEwAxdWv2Jxk6vcKAGCw05jt3M7jPLarIVBMV5WTJyo26bX1FjVPxAQwJFsj+UwAYOzTmHo7XO3mTu5mlj2DDxTSxRYDZ1lWrX+HzXshJoChkWQEAIY/jVnvtFmvzmiSgzzKpxX7sQOUZSE6w4oJ6l3JYgIoSmITABi+k8zzNEcVu0Pv516+zL1q/diBsalfs6l1EMOJCWo3ERITQDESmwDA8K3yLPdzP88qVmjczH/If9UyESiimyTjuYFnEDFB/SZCYgIoRmITABiD0xzlaeUKDYAyLAuHj1G/iRBQjMQmADAOZ5cVGrUaBrzIb/Pf8weJB6DIE61+Ix/1mgxH7SZCYgIoRmITABiL44oNA+r3XQXG5aTyYnQ7bDIsL8QEMAwSmwDAmBIBNRoGnOePFrkBRdVejL7KwuJ3xARiAmiPxCYAMKZUQPnl6Mf5fX6dvzOFAYqqW0F5lnnmKjYRE4gJoDUSmwDAmLxcjl5mer6uy/g8n5vCAMXV2/NyXR+6UK+JmEBMAK3ZMQQAwKicZJ6nucgsuxv+y6d5lnke5Lc51mQDGBQ7bCImEBNAkyQ2AYBxWeVZ7ucX+WU+yfZGp/3Pcj9P8y+aAwCVnA/0s0BMAHwgS9EBgLE5zVGebrhhwHGO8rv8LkemMEAlqihBTACjJ7EJAIwxHbBuGLCZPa/Wu2j9Ve7nmSQDUEndfS/VayImEBNAkyQ2AYAxOs6TfJEnG6ilWHc8/dv8Or/PqYEFqqnXqVxtKGICMQE0SmITABinF5e9UFcf+Vdedjz9o4omoKpVFjnMsnjNZq3PATEBcGWaBwEAY3WSeeaZ5mcfNYX5It/oeAp0ok4lZb3KUBATAFekYhMAGKvVR+2qtd5F6wt1GUCHyj996u7lCWIC4EokNgGA8br+rlrrXbT+Lk821GwAoFV22ERMICaAZklsAgBj9nJXrbMr/r9e7qJlCgN063wgnwFiAuAa7LEJAIzbSeZ5movMsnuFKYxdtIAWnGWZT7JtIEBMAOOkYhMAGLdVnuV+7ufZB+0gZxctoKXnV439Lz3rEBOICaBZKjYBgLE7zVEuPqgX6nEWmefBtZsLAGzWumP5QcGaTTtsIiYQE0DDVGwCAJxd9kL9qYYB67oMu2gBLVllkcMsi9VsrmtCl3qiIyYQE0CbJDYBAJLjy4YB75q8n+b3+XX+Nr/O76/RLxWglNIVlScqNhETiAmgXZaiAwCsJ+/zdy49O8uz3M/T/IsJDNCcknv7nWWZE0OMmEBMAK3qomJziJvq2ih42GfBNesb4woY4zGN765bXS49+/GSsuMc5Xf5XY5MYTxtHJOjGdlz0UJ0xh0THIsJoHU7P/HoKvP6Os7zzpYy9PGYzoURnZ+FszzP7ewXeFl2FyD075hKfeOhBmLDCz7dh/WPaYhj/iHvkif5Il/mXm6+8iY+zm/zIPM8a2wx5phjhD6+b7q79od1TON8NnX3PFj1aCF6mTHo9spo5ZjGGhN8k4f5KrNMOowJWr+u5SuMeQOj+K7E5mmOUqKe8zzLPOzoN78+HlOp7zw85c7CKss8zGGmGz8P5znKaUePg74dU7lvPNT7oatryzU7nGMa4ph/mBeXqc0/u5zAvex4+tscNzb9GneM0Mf3TVfX/rCOabzPpq6eB+e9qUorN9fr7spo5ZjGe9+dZJ6nucgsux3FBK1f1/IVxryJUbxx8fb/fDcH2cmNjX+Ni3yXZUcvxz4eU6nvPDxlr6z9TAuch4t8l0Vnr/L+HVOZbzzc+2ExsNSm+7CLYxrimH+Yn+Uv8lVm2crJZV3GosGJ/bhjhD6+b7q89od1TON9NnXxPOjPuJSc63U1Ai0d01jvu93M8ov8srOYoPXrWr7CmDcxiu9KbCZbhYbqosN6hz4e05bHRBNX1lahULHL6p/+HZO7oS/Xlmt2OMc0xDH/ENv5JP8jd5Ism6zV9FTs6/tGFOx90MfnQX/GxZ1b9pjGet9NMus0Jmj9ujZDM+YNjOK7E5sAAOO0/jU8Ha4zAQDEBMB7SWwCALxp/Wv4hf7LACAmEBNAuyQ2AQAAAIDe0b8KAAAAAOgdiU0AAAAAoHckNgEAAACA3pHYBAAAAAB6R2ITAAAAAOgdiU0AAAAAoHckNgEAAACA3vn/TVhrcUJ96SEAAAAASUVORK5CYII=);mask-image:url(data:image/png;base64,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);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;animation:ljit var(--t,5.3s) var(--dl,2s) infinite}@keyframes lboot{0%{opacity:0;transform:translateY(-14px)}60%{opacity:1}100%{opacity:1;transform:none}}@keyframes ljit{0%,88%,100%{transform:none;opacity:1}89%{transform:translate(var(--jx,2px),var(--jy,-2px));opacity:.4}90%{transform:translate(calc(var(--jx,2px)*-1),0);opacity:1}92%{opacity:.6}93%{opacity:1;transform:none}96%{opacity:.85}}
+.tbox{padding:44px 64px}
+.bmp{background:var(--g);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;mask-size:100% 100%;padding:0!important}
+.tsub.bmp{width:210px;height:26px;-webkit-mask-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANIAAAAaCAQAAABoK8oQAAABVElEQVR4nO2Z4QrDIAyE1+H7v3L3Y5NJMHqX2NWMfDAY1sQKOU3S43z8KXVjR2dMo87t2fZ8S7vZ+kaefhfJ1RQ1umYRKKPOas+AKgF5bo10aXd+fqgf9ug6UkkhKOp5WqNDO9vrc4u9lRVK8NBbs+4RVZNBcamkAJS7X2Br2vtjlWIN6XQqKQC8kv6hsDrFf00lV953hO9UUgDeSkLrGE1FiD1Spf8CT53Ty+TYLLP1Ac5PJQWgwJHQzpNnOmKv1VkrmUXnqjpHKoHdBzk/lRQALru76x5BsfYL5ThzKnjmgKSSAoAraXcVsYzur9FePT1DY42ZSgrAHr07NjrRjsHMdtTBZ94HBenid8ZTSQH4KknLhrQKedZRYO1RvF9GZ+vLOnADUkkB6H+ZlYzmrKgZ2LvI0zFofTH9yRtJJQVgj+wOZcV3H3mXsf4MXWwvqaQAvAAcDVlSei1aOQAAAABJRU5ErkJggg==);mask-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANIAAAAaCAQAAABoK8oQAAABVElEQVR4nO2Z4QrDIAyE1+H7v3L3Y5NJMHqX2NWMfDAY1sQKOU3S43z8KXVjR2dMo87t2fZ8S7vZ+kaefhfJ1RQ1umYRKKPOas+AKgF5bo10aXd+fqgf9ug6UkkhKOp5WqNDO9vrc4u9lRVK8NBbs+4RVZNBcamkAJS7X2Br2vtjlWIN6XQqKQC8kv6hsDrFf00lV953hO9UUgDeSkLrGE1FiD1Spf8CT53Ty+TYLLP1Ac5PJQWgwJHQzpNnOmKv1VkrmUXnqjpHKoHdBzk/lRQALru76x5BsfYL5ThzKnjmgKSSAoAraXcVsYzur9FePT1DY42ZSgrAHr07NjrRjsHMdtTBZ94HBenid8ZTSQH4KknLhrQKedZRYO1RvF9GZ+vLOnADUkkB6H+ZlYzmrKgZ2LvI0zFofTH9yRtJJQVgj+wOZcV3H3mXsf4MXWwvqaQAvAAcDVlSei1aOQAAAABJRU5ErkJggg==);filter:drop-shadow(0 0 8px rgba(69,255,60,.5))}
+.tline.bmp{width:481px;height:14px;margin-top:12px;-webkit-mask-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeEAAAAOCAQAAACyJmxmAAADA0lEQVR4nO1Zy5IkIQjUiPr/X3YPO9UqQgKCVdETk4fdaR+QgiJStZU//OHL0DdtnVoqM/bX4yql7JhE6qeS1nFrzOC0NHZEY35pkjh0OZwMifPZ7XKGk8WOp6B564bs/3EPyWO9THyzRnTvSLt7j5PucWC9axDWSiltIeQ5KFhSl1WnlsbI1KhbJWnsNVe05W/dPrymJzmtklGyhfhYV6dvZj1Qr22ovxo9roU1PFY+ZH7INsJXHD/ug2sQzB89e7zRJHFEasg4uqRotNTnWLcmnRHjtOZNu6A8Zs/5V4f16FitI/kV7Z2MYPIluB7RQpMCS5Rf53PtXkl2cInt228tmhbTe8j2/Flb1lAohd8osqR+8ZFjIK/GEOifOcJjTL+33dqrzadvoh1JHNrn/3krj71nN7aPE812aL8Mf1KYd1Qq46+7J4b3jnPumlCKDTRdw+aMFjlskvIOQY4kSyVAfxzkwhI22nKAzyFnzW/nMCfw3JpETVeZT3iMEpZkeSFyo6OS0Mz9I7qucteCXk5zBqLpw8+AVQMnNXLPWMKMx2Y0E7GHMa/H6M1nL2QiqTwnesfq9v/gEtTtHmWpsuyXiThFMoVSJLegEo4kiYP3KO9w0n6jHhoQ0IMkftOfvqfsx9jvMVw9zliZvOfMJ6d/VEIKrKBlKypj755aPxxkcuakRXORDCBOeXbU5VhLZRbtWEMU0cC+QuOckbliTVXpL/+/C3NOmqfwxRUbJWnjxOD5MIDZ372jFfI4a4+KNzi9gzyPPY3ckIzWtIZpxOFnBL6Fx6G+t+KYgMVM0IZ/LVGJn6+xl1LHvGJfHqeITmrHE+Atle2xXR7vILomYL3+UQknE96CTy7lvoXnu0iXa2XfxODgLdHJRYk8TnZgO2oFGfvqtNKP1k41jNaRxtwWmn/Ns3I8FsV+0XQGO6u2rmIcpqVt9i2N0gOZHOeCuc0qiQNl73sL26O75x7wceJXL/tDtuM5aCu6ofGgu3O8Hno7svX+fbz7RvWEKlmS6eT8A45NWkYY/RsjAAAAAElFTkSuQmCC);mask-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeEAAAAOCAQAAACyJmxmAAADA0lEQVR4nO1Zy5IkIQjUiPr/X3YPO9UqQgKCVdETk4fdaR+QgiJStZU//OHL0DdtnVoqM/bX4yql7JhE6qeS1nFrzOC0NHZEY35pkjh0OZwMifPZ7XKGk8WOp6B564bs/3EPyWO9THyzRnTvSLt7j5PucWC9axDWSiltIeQ5KFhSl1WnlsbI1KhbJWnsNVe05W/dPrymJzmtklGyhfhYV6dvZj1Qr22ovxo9roU1PFY+ZH7INsJXHD/ug2sQzB89e7zRJHFEasg4uqRotNTnWLcmnRHjtOZNu6A8Zs/5V4f16FitI/kV7Z2MYPIluB7RQpMCS5Rf53PtXkl2cInt228tmhbTe8j2/Flb1lAohd8osqR+8ZFjIK/GEOifOcJjTL+33dqrzadvoh1JHNrn/3krj71nN7aPE812aL8Mf1KYd1Qq46+7J4b3jnPumlCKDTRdw+aMFjlskvIOQY4kSyVAfxzkwhI22nKAzyFnzW/nMCfw3JpETVeZT3iMEpZkeSFyo6OS0Mz9I7qucteCXk5zBqLpw8+AVQMnNXLPWMKMx2Y0E7GHMa/H6M1nL2QiqTwnesfq9v/gEtTtHmWpsuyXiThFMoVSJLegEo4kiYP3KO9w0n6jHhoQ0IMkftOfvqfsx9jvMVw9zliZvOfMJ6d/VEIKrKBlKypj755aPxxkcuakRXORDCBOeXbU5VhLZRbtWEMU0cC+QuOckbliTVXpL/+/C3NOmqfwxRUbJWnjxOD5MIDZ372jFfI4a4+KNzi9gzyPPY3ckIzWtIZpxOFnBL6Fx6G+t+KYgMVM0IZ/LVGJn6+xl1LHvGJfHqeITmrHE+Atle2xXR7vILomYL3+UQknE96CTy7lvoXnu0iXa2XfxODgLdHJRYk8TnZgO2oFGfvqtNKP1k41jNaRxtwWmn/Ns3I8FsV+0XQGO6u2rmIcpqVt9i2N0gOZHOeCuc0qiQNl73sL26O75x7wceJXL/tDtuM5aCu6ofGgu3O8Hno7svX+fbz7RvWEKlmS6eT8A45NWkYY/RsjAAAAAElFTkSuQmCC);image-rendering:pixelated}
+.tmain{top:50%!important;transform:translate(-50%,-50%)!important}
+#startBtn{font-size:22px;padding:14px 48px;letter-spacing:.12em}
+.panel .acts .btn{font-size:16px;padding:8px 20px;border-width:1px}
+#fName.need::placeholder{color:var(--y);opacity:1}
+.side>.box{width:100%;box-sizing:border-box}
+.arch-side{max-height:170px}.arch-side button{padding:5px 6px;font-size:12px}.arch-side button i{width:10px;height:10px;margin-top:4px}
+.arch-side .none{font-size:12px;color:var(--g3)}
+#mLogo{width:310px;box-sizing:border-box;padding:8px 14px;text-align:center;white-space:nowrap}#mLogo .lt{display:inline-block}
+.txt .u{opacity:0;transition:opacity .08s linear;pointer-events:none}.txt .u.on{pointer-events:auto}
+.txt .u.last::after{content:'';display:inline-block;width:.55em;height:1.05em;margin-left:1px;vertical-align:-.15em;background:var(--g);animation:blink 1s steps(1) infinite}
+.endpad{opacity:0;transition:opacity .4s}.endpad.on{opacity:1}
+.txt .u.on{opacity:1}
+.txt .endmark{opacity:1;transform:none}
+.recHint{margin:-6px 0 0 104px;min-height:0;font-size:13px;color:var(--g);line-height:1.6}.recHint:empty{display:none}.recHint b{color:var(--y);font-weight:400}
+</style>
+
+<!-- 인트로 -->
+<section id="intro" class="screen" aria-live="polite">
+  <pre id="introText"></pre>
+  <button class="skip" id="skip">건너뛰기 ›</button>
+</section>
+
+<!-- 타이틀 -->
+<section id="title" class="screen">
+  <canvas id="dotfield"></canvas>
+  <div class="hud hud-tl"><p class="tsub bmp"><span class="sr">2026. 저장인류</span></p><p class="tline bmp"><span class="sr">읽지 않은 것을 저장하고, 저장한 것으로 나를 채웠다고 믿는 사람들</span></p></div>
+  <div class="hud hud-tr"><div>SAVED <b id="cSaved">0</b></div><div>READ <b id="cRead" class="zero">0</b></div></div>
+  <div class="hud hud-br">UX MEDIA STUDIO · 2026</div>
+  <div class="tmain">
+    <div class="tbox frame"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+      <h1><span class="sr">Homo Archivarius</span><span class="tlogo" aria-hidden="true"><i style="left:0.225%;width:6.147%;-webkit-mask-size:1626.829% 100%;mask-size:1626.829% 100%;-webkit-mask-position:0.240% 0;mask-position:0.240% 0;--d:0"></i><i style="left:7.571%;width:6.109%;-webkit-mask-size:1636.810% 100%;mask-size:1636.810% 100%;-webkit-mask-position:8.064% 0;mask-position:8.064% 0;--d:1"></i><i style="left:14.880%;width:6.109%;-webkit-mask-size:1636.810% 100%;mask-size:1636.810% 100%;-webkit-mask-position:15.848% 0;mask-position:15.848% 0;--d:2"></i><i style="left:22.189%;width:6.147%;-webkit-mask-size:1626.829% 100%;mask-size:1626.829% 100%;-webkit-mask-position:23.642% 0;mask-position:23.642% 0;--d:3"></i><i style="left:31.822%;width:6.109%;-webkit-mask-size:1636.810% 100%;mask-size:1636.810% 100%;-webkit-mask-position:33.892% 0;mask-position:33.892% 0;--d:4"></i><i style="left:38.793%;width:6.597%;-webkit-mask-size:1515.909% 100%;mask-size:1515.909% 100%;-webkit-mask-position:41.533% 0;mask-position:41.533% 0;--d:5"></i><i style="left:46.627%;width:5.247%;-webkit-mask-size:1905.714% 100%;mask-size:1905.714% 100%;-webkit-mask-position:49.209% 0;mask-position:49.209% 0;--d:6"></i><i style="left:53.073%;width:6.147%;-webkit-mask-size:1626.829% 100%;mask-size:1626.829% 100%;-webkit-mask-position:56.550% 0;mask-position:56.550% 0;--d:7"></i><i style="left:60.907%;width:2.136%;-webkit-mask-size:4680.702% 100%;mask-size:4680.702% 100%;-webkit-mask-position:62.237% 0;mask-position:62.237% 0;--d:8"></i><i style="left:63.906%;width:6.597%;-webkit-mask-size:1515.909% 100%;mask-size:1515.909% 100%;-webkit-mask-position:68.419% 0;mask-position:68.419% 0;--d:9"></i><i style="left:70.990%;width:6.109%;-webkit-mask-size:1636.810% 100%;mask-size:1636.810% 100%;-webkit-mask-position:75.609% 0;mask-position:75.609% 0;--d:10"></i><i style="left:77.549%;width:6.597%;-webkit-mask-size:1515.909% 100%;mask-size:1515.909% 100%;-webkit-mask-position:83.026% 0;mask-position:83.026% 0;--d:11"></i><i style="left:84.633%;width:2.136%;-webkit-mask-size:4680.702% 100%;mask-size:4680.702% 100%;-webkit-mask-position:86.480% 0;mask-position:86.480% 0;--d:12"></i><i style="left:87.631%;width:6.109%;-webkit-mask-size:1636.810% 100%;mask-size:1636.810% 100%;-webkit-mask-position:93.333% 0;mask-position:93.333% 0;--d:13"></i><i style="left:94.603%;width:5.247%;-webkit-mask-size:1905.714% 100%;mask-size:1905.714% 100%;-webkit-mask-position:99.842% 0;mask-position:99.842% 0;--d:14"></i></span></h1>
+    </div>
+    <div class="tstart"><span>&gt; PRESS START<span class="cur"></span></span><button class="btn" id="startBtn">START</button></div>
+  </div>
+  <div class="ruler truler"></div>
+</section>
+
+<!-- 사용자 정보 입력 -->
+<section id="input" class="screen">
+  <form class="panel frame grid-bg" id="form" novalidate><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+    <h2>[ 사용자 정보 입력 ]</h2>
+    <div class="row"><label for="fName">//이름</label><input id="fName" maxlength="20" placeholder="이름을 입력하세요 (다시 왔다면 이름#코드)" autocomplete="off"></div>
+    <p class="recHint" id="recHint" aria-live="polite"></p>
+    <div class="row"><span class="lb">//성별</span><div class="chips" id="gChips">
+      <button type="button" class="chip" data-v="여성" aria-pressed="true">여성</button>
+      <button type="button" class="chip" data-v="남성" aria-pressed="false">남성</button>
+      <button type="button" class="chip" data-v="선택 안 함" aria-pressed="false">선택 안 함</button></div></div>
+    <div class="row" style="align-items:start"><span class="lb" style="padding-top:4px">//관심사</span><div><div class="chips" id="iChips"></div><p class="err" id="iHint" style="color:var(--g2);margin-top:8px">최대 3개까지 고를 수 있어요</p></div></div>
+    <p class="err" id="err"></p>
+    <div class="acts"><button class="btn" type="submit">나를 구성할 정보 불러오기</button></div>
+  </form>
+</section>
+
+<!-- 메인 -->
+<section id="main" class="screen">
+  <header class="top">
+    <div class="logo frame" id="mLogo"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i><span class="lt">Homo Archivarius</span></div>
+    <div class="status">
+      <span id="who"></span>
+      <span>읽어낸 정보 <b id="cnt">0</b> / <b id="tot">0</b></span>
+      <button class="btn" id="repBtn">분석 리포트 받기</button>
+    </div>
+  </header>
+  <aside class="side">
+    <div class="box frame grid-bg"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+      <h3>[ 나를 구성하는 정보 ]</h3>
+      <p>당신의 형상은 관심사에서 비롯된 정보들로 이루어져 있습니다. 빈 칸을 열어 끝까지 읽어내면, 그 정보는 당신의 일부가 됩니다.</p>
+    </div>
+    <div class="box frame"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+      <h3>[ 수집한 단어 ]</h3><div class="words" id="words"><span class="none">아직 없음</span></div>
+    </div>
+    <div class="box frame"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+      <h3>[ 나의 아카이브 ]  <span id="archN">0</span></h3><ul class="arch arch-side" id="archSide"></ul>
+    </div>
+    <div class="box frame" style="flex:1"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+      <h3>[ LOG ]</h3><ul class="log" id="log"></ul>
+    </div>
+  </aside>
+  <div class="stage"><canvas id="cv" aria-label="네모 픽셀로 이루어진 나의 실루엣"></canvas><p class="hint" id="hint">&gt; 빈 칸을 클릭해 정보를 열어 보세요</p></div>
+  <div class="ruler"></div>
+</section>
+
+<!-- 정보 열람 창 -->
+<div class="ov" id="info" role="dialog" aria-modal="true" aria-labelledby="iTitle">
+  <div class="win frame grid-bg"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+    <div class="win-h"><span id="iHead">[ 정보 열람 ]</span><button id="iClose">닫기 ✕</button></div>
+    <div class="win-b">
+      <div class="read"><span class="cat" id="iCat"></span><h4 id="iTitle"></h4><div class="txt" id="iTxt"></div></div>
+      <div class="gauge">
+        <svg id="ring" viewBox="0 0 200 200" aria-hidden="true"></svg>
+        <div class="pct" id="iPct">0%</div>
+        <p id="iMsg">스크롤하면 한 글자씩 읽히고<br>읽은 만큼 네모가 채워집니다</p>
+        <p class="wc" id="iWc">가려진 단어 0 / 0</p>
+        <p>가려진 단어를 클릭하면<br>수집됩니다</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 리포트 전 안내 -->
+<div class="ov" id="confirm" role="dialog" aria-modal="true">
+  <div class="modal frame grid-bg"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>
+    <p id="cMsg"></p>
+    <div class="acts"><button class="btn" id="cGo">지금 분석 받기</button><button class="btn ghost" id="cBack">더 읽어내기</button></div>
+  </div>
+</div>
+
+<!-- 리포트 -->
+<div class="ov" id="report" role="dialog" aria-modal="true">
+  <div class="rep" style="width:100%">
+    <header class="top rtop"><div class="logo frame" id="rLogo"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i><span class="lt">Homo <span class="w" id="rWord">Archivarius</span></span></div><div class="status" id="rGloss">[ 사용자 분석 리포트 ]</div><div class="racts rtacts"><button class="btn" id="rSave">리포트 저장하기</button><button class="btn ghost" id="rBack">계속 읽어내기</button><button class="btn ghost" id="rHome">처음으로</button></div></header>
+    <div class="rep-b">
+      <div class="card">
+        <div class="frame grid-bg" style="padding:14px"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i><canvas id="ch"></canvas></div>
+        <div class="nm" id="rName"></div>
+        <div class="stg" id="rStage"></div>
+      </div>
+      <div class="rinfo" id="rInfo"></div>
+    </div>
+    <div class="ruler"></div>
+  </div>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const G='#45FF3C',Y='#F2FF3A';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ===================== 콘텐츠 ===================== */
+const INTERESTS=['디자인','독서','운동','요리','여행','음악','재테크','자기계발','연애','뷰티','패션','반려동물'];
+const TITLE={디자인:'THE DESIGNER',독서:'THE READER',운동:'THE ATHLETE',요리:'THE COOK',여행:'THE TRAVELER',음악:'THE LISTENER',재테크:'THE SAVER',자기계발:'THE PLANNER',연애:'THE ROMANTIC',뷰티:'THE GLOWER',패션:'THE STYLIST',반려동물:'THE COMPANION'};
+// 가장 많이 읽은 관심사 → 'Homo ___' (호모 사피엔스처럼 라틴어 형태 + 뜻)
+const HOMO={디자인:['Designans','디자인하는 인간'],독서:['Legens','읽는 인간'],운동:['Movens','움직이는 인간'],요리:['Coquens','요리하는 인간'],여행:['Viator','떠나는 인간'],음악:['Musicus','음악하는 인간'],재테크:['Economicus','계산하는 인간'],자기계발:['Proficiens','나아가는 인간'],연애:['Amans','사랑하는 인간'],뷰티:['Aestheticus','아름다움을 좇는 인간'],패션:['Ornatus','꾸미는 인간'],반려동물:['Socius','곁을 두는 인간']};
+const CONTENT={
+ 디자인:[
+  {t:'디자이너들이 절대 안 알려주는 색 조합 공식',b:['좋은 색 조합은 감이 아니라 규칙에서 시작한다. 가장 먼저 정할 것은 화면의 대부분을 차지할 [[기본색]] 하나다.','그다음 기본색과 대비되는 강조색을 아주 적은 면적에만 쓴다. 강조색이 넓어지면 더 이상 강조가 아니게 된다.','회색도 그냥 회색을 쓰지 말고, 기본색 쪽으로 살짝 기울인 회색을 만들어 쓰면 화면 전체가 하나의 톤으로 묶인다.','색을 고를 때는 화면을 흑백으로 바꿔 보는 것도 도움이 된다. 흑백에서도 읽히는 화면이라면 [[명도]] 대비가 충분하다는 뜻이다.','마지막으로 색의 개수를 세어 보자. 세 가지를 넘는다면 하나를 빼도 괜찮은지 다시 확인한다.']},
+  {t:'자간 1px로 포스터 퀄리티가 2배 됩니다',b:['같은 글자, 같은 크기라도 글자 사이 간격에 따라 인상이 완전히 달라진다.','큰 제목은 기본 자간이 오히려 헐거워 보이기 때문에 살짝 좁혀 주는 것이 일반적이다. 반대로 작은 글씨는 조금 [[넓혀야]] 읽기 편하다.','대문자만으로 쓴 영문은 자간을 넓혀야 숨이 트인다.','한글은 글자마다 생김새가 달라 간격이 고르지 않아 보일 때가 있다. 이럴 때는 숫자보다 눈을 믿고 [[광학적]]으로 맞추는 연습이 필요하다.','포스터를 멀리서 한 번, 가까이서 한 번 보며 글자 덩어리가 고르게 보이는지 확인해 보자.']},
+  {t:'면접관은 포트폴리오를 3초 만에 판단한다',b:['포트폴리오를 보는 사람은 생각보다 짧은 시간 안에 첫인상을 정한다.','그래서 첫 장에는 가장 자신 있는 작업 하나를 크게 보여 주는 것이 좋다. 여러 작업을 작게 늘어놓으면 [[기억]]에 남는 것이 없다.','작업마다 무엇을 고민했는지 한 문장으로 적어 두면, 결과물뿐 아니라 생각하는 방식까지 전달된다.','작업의 순서도 하나의 이야기다. 강한 작업, 과정이 보이는 작업, 다시 강한 작업 순으로 [[리듬]]을 만들어 보자.','마지막 장에는 연락처와 함께 앞으로 해 보고 싶은 작업을 짧게 남기면 대화의 실마리가 된다.']},
+  {t:"이거 하나 몰라서 내 화면이 촌스러웠다",b:["화면이 어수선해 보이는 이유는 요소가 많아서가 아니라 기준선이 없어서인 경우가 많다.", "먼저 화면을 같은 너비의 [[칸]] 몇 개로 나누고, 모든 요소를 그 칸의 경계에 맞춰 놓아 보자.", "요소 사이의 간격도 4나 8의 배수처럼 하나의 단위로 통일하면 화면에 일정한 리듬이 생긴다.", "일부러 칸을 벗어나는 요소는 하나만 두는 것이 좋다. 규칙이 있어야 깨는 순간이 [[강조]]가 된다.", "완성한 뒤 안내선을 끄고 보았을 때도 정돈되어 보인다면 그리드가 제 역할을 한 것이다."]},
+  {t:"핀터레스트만 보던 사람이 실력 느는 순간",b:["좋은 레퍼런스를 많이 모아도 막상 작업에 들어가면 비슷한 결과물이 나오기 쉽다.", "레퍼런스를 볼 때는 결과물보다 그 안의 [[원리]]를 한 문장으로 적어 보자. 예를 들어 큰 여백으로 시선을 모은다처럼.", "적어 둔 원리를 전혀 다른 주제에 적용해 보면 모양은 달라도 좋은 점은 남는다.", "여러 레퍼런스에서 원리 하나씩만 가져와 섞으면 어느 하나와도 닮지 않은 [[조합]]이 만들어진다.", "모아 두기만 한 레퍼런스는 내 것이 아니다. 한 번 써 본 원리만 내 감각으로 남는다."]},
+  {t:"아이콘이 어딘가 어색했던 진짜 이유",b:["아이콘을 하나씩 따로 그리면 각각은 괜찮아도 모아 놓았을 때 어색해 보이곤 한다.", "가장 먼저 맞춰야 할 것은 선의 [[두께]]다. 선 굵기가 다르면 같은 세트로 보이지 않는다.", "모서리의 둥글기, 전체 크기, 안쪽 여백도 같은 값을 쓰는지 확인해 보자.", "원, 사각형, 삼각형은 같은 크기여도 눈에 보이는 크기가 다르다. 그래서 원은 조금 더 크게 그려 [[시각적]] 크기를 맞춘다.", "모든 아이콘을 한 줄로 세워 놓고 하나만 튀어 보이지 않는지 마지막으로 확인한다."]}
+ ],
+ 독서:[
+  {t:'한 달에 4권 읽는 사람들의 소름 돋는 공통점',b:['책을 많이 읽는 사람들은 특별히 시간이 많은 사람이 아니다. 대신 읽는 시간을 [[습관]]으로 만들어 두었다.','출퇴근길, 잠들기 전 15분처럼 매일 같은 자리에 독서를 끼워 넣는다.','다 읽지 못한 책을 억지로 붙잡고 있지 않는 것도 공통점이다. 재미없는 책은 과감히 덮고 다음 책으로 넘어간다.','책 한 권을 고를 때 다음에 읽을 책을 미리 한 권 더 정해 두면 흐름이 [[끊기지]] 않는다.','중요한 것은 권수가 아니라, 읽은 책에서 한 문장이라도 내 것으로 남기는 일이다.']},
+  {t:'출퇴근길에 한 편 끝나는 인생 단편 고르는 법',b:['단편소설은 짧은 시간 안에 하나의 세계를 끝까지 경험할 수 있다는 점에서 바쁜 사람에게 잘 맞는다.','처음이라면 여러 작가의 작품이 모인 [[앤솔러지]]로 시작해 보자. 마음에 드는 문체를 찾기 쉽다.','첫 문단을 읽고 장면이 그려지는지 확인해 보는 것도 좋은 기준이다.','한 편을 다 읽은 뒤에는 마지막 장면을 떠올리며 잠시 [[여운]]을 남겨 두자. 단편의 힘은 다 읽은 뒤에 나온다.','마음에 든 작가가 생기면 그 작가의 다른 작품으로 넓혀 가면 된다.']},
+  {t:'읽고 다 까먹는 사람 vs 오래 기억하는 사람',b:['눈으로만 읽은 문장은 금방 흐려지지만, 손을 움직여 표시한 문장은 더 오래 남는다.','밑줄을 긋는 순간 우리는 이 문장이 왜 중요한지 한 번 더 [[판단]]하게 된다.','다만 모든 문장에 밑줄을 긋는다면 아무것도 고르지 않은 것과 같다. 한 장에 한두 문장이면 충분하다.','책을 다 읽은 뒤 밑줄 친 문장만 다시 모아 [[필사]]해 보면, 책 한 권이 몇 줄의 나만의 문장으로 정리된다.','그 몇 줄이 결국 그 책에서 내가 가져가는 전부다.']},
+  {t:"3장에서 덮던 책, 끝까지 읽게 된 비결",b:["비문학 책은 처음 몇 장을 넘기고 나면 손이 잘 가지 않는 경우가 많다.", "읽기 전에 [[목차]]를 먼저 훑으며 이 책이 어떤 질문에 답하려는지 파악해 두자.", "모든 장을 같은 속도로 읽을 필요는 없다. 궁금한 장부터 읽어도 괜찮다.", "한 장을 읽고 나면 핵심을 한 줄로 [[요약]]해 보자. 요약이 안 된다면 다시 읽을 부분이 어디인지 보인다.", "끝까지 읽는 힘은 의지보다 책과 나의 질문이 맞닿아 있을 때 생긴다."]},
+  {t:"독서 모임 한 번 갔다가 책 보는 눈이 바뀜",b:["혼자 읽을 때는 내 해석이 유일한 해석처럼 느껴진다.", "같은 책을 읽은 사람들과 이야기를 나누면 내가 지나친 문장을 누군가는 가장 중요한 [[문장]]으로 꼽는다.", "모임 전에 질문 하나를 준비해 가면 대화가 감상 나열로 흐르지 않는다.", "다른 사람의 해석을 듣고 나서 다시 펼친 책은 처음과 다른 [[관점]]으로 읽힌다.", "책은 한 번 읽히지만, 함께 나눈 이야기는 그 책을 여러 번 읽게 만든다."]},
+  {t:"전자책 vs 종이책, 기억에 남는 쪽은 따로 있다",b:["전자책은 가볍고 언제든 꺼낼 수 있다는 장점이 분명하다.", "반면 종이책은 책의 두께와 [[위치]] 감각 덕분에 어디쯤 무엇이 있었는지 기억하기 쉽다.", "전자책으로 읽을 때는 하이라이트 기능을 적극적으로 쓰되, 읽고 난 뒤 한 번 모아 보는 시간을 꼭 갖자.", "어느 쪽이든 중요한 것은 읽는 동안 생각을 멈추지 않는 것이다. 화면이든 종이든 [[메모]]를 남기는 손이 기억을 만든다.", "형식보다 읽는 태도가 더 많은 것을 결정한다."]}
+ ],
+ 운동:[
+  {t:'하루 10분, 2주 만에 몸이 달라진 루틴',b:['운동을 꾸준히 하지 못하는 가장 큰 이유는 시작이 너무 거창하기 때문이다.','하루 10분만 정해 두고, 같은 시간에 같은 동작을 반복해 보자. 몸보다 먼저 [[습관]]이 만들어진다.','스쿼트, 플랭크, 런지처럼 도구가 필요 없는 동작을 1분씩 돌아가며 하면 충분하다.','동작의 개수보다 [[자세]]가 중요하다. 거울 앞에서 무릎과 허리의 방향을 확인하며 천천히 해 보자.','열흘을 이어 갔다면 그때 시간을 조금 늘려도 늦지 않다.']},
+  {t:'러닝 초보 90%가 하는 무릎 망치는 실수',b:['처음 달리기를 시작하면 의욕이 앞서 너무 빠르게, 너무 멀리 달리기 쉽다.','초보에게 가장 좋은 속도는 옆 사람과 [[대화]]가 가능한 정도의 속도다.','보폭을 크게 하기보다 발을 자주 내딛는 편이 무릎에 가는 충격을 줄여 준다.','달리기 전후로 종아리와 허벅지를 충분히 풀어 주고, 통증이 느껴지면 그날은 쉬는 것이 맞다.','기록보다 [[꾸준함]]이 먼저다. 일주일에 세 번, 짧게라도 이어 가는 것이 목표다.']},
+  {t:'스트레칭, 지금까지 거꾸로 하고 있었다',b:['스트레칭은 언제 하느냐에 따라 방식이 달라야 한다.','운동 전에는 몸을 움직이며 관절을 데우는 [[동적]] 스트레칭이 잘 맞는다. 팔 돌리기, 가볍게 다리 흔들기 같은 동작이다.','운동 후에는 한 자세를 천천히 유지하며 근육을 늘이는 스트레칭으로 몸을 진정시킨다.','어느 쪽이든 아플 만큼 당기지 않는 것이 원칙이다. 시원한 정도에서 [[호흡]]을 길게 이어 가자.','짧더라도 운동의 시작과 끝을 정해 두면 몸이 그 흐름을 기억하게 된다.']},
+  {t:"헬스 초보가 3개월 만에 체형 바뀐 분할법",b:["처음 근력 운동을 시작하면 매일 전신을 다 하려다 금방 지치기 쉽다.", "상체 미는 운동, 당기는 운동, 하체 운동으로 나누는 [[3분할]]은 초보가 시작하기 좋은 구성이다.", "같은 부위를 다시 운동하기 전에 48시간 정도 쉬어야 근육이 회복된다.", "무게를 올리기보다 정확한 자세로 한 세트를 끝까지 해내는 [[반복]]이 먼저다.", "한 달 동안 기록을 남기면 숫자가 조금씩 늘어나는 것이 보이고, 그게 다음 달의 동기가 된다."]},
+  {t:"운동할 때 물, 이렇게 마시면 오히려 손해",b:["운동할 때 물을 한 번에 많이 마시면 오히려 속이 불편해질 수 있다.", "운동 전 30분쯤 미리 한 컵을 마시고, 운동 중에는 조금씩 [[나눠]] 마시는 것이 좋다.", "땀을 많이 흘렸다면 물과 함께 전해질도 보충해 주어야 한다.", "목이 마르다고 느낄 때는 이미 몸에 수분이 부족해지기 시작한 [[신호]]다.", "물병을 눈에 보이는 곳에 두는 것만으로도 마시는 양이 달라진다."]},
+  {t:"운동보다 중요한 건 따로 있었다",b:["운동은 근육에 자극을 주는 일이고, 근육이 실제로 자라는 시간은 쉬는 동안이다.", "특히 깊이 잠든 동안 몸은 손상된 근육을 [[회복]]시킨다.", "잠이 부족하면 같은 운동을 해도 쉽게 지치고 다칠 위험도 커진다.", "운동한 날일수록 잠자기 전 화면을 멀리하고 일정한 [[시간]]에 눕는 습관을 들여 보자.", "잘 자는 것도 운동 루틴의 일부다."]}
+ ],
+ 요리:[
+  {t:'설거지 1개, 15분 만에 끝나는 레스토랑 파스타',b:['냄비 하나로 면을 삶고 소스까지 끝내는 원팬 파스타는 설거지가 줄어드는 것이 가장 큰 장점이다.','팬에 마늘과 올리브유를 먼저 볶아 향을 내고, 물과 면을 함께 넣어 끓인다.','면이 익는 동안 나온 [[전분]]이 국물을 걸쭉하게 만들어 따로 소스를 만들지 않아도 된다.','물이 거의 졸아들 때쯤 불을 줄이고 치즈나 남은 채소를 넣어 마무리한다.','마지막 간은 소금보다 면 삶은 국물로 맞추면 [[균형]]이 잘 맞는다.']},
+  {t:'장 안 보고 일주일 버틴 자취생 냉파 레시피',b:['장을 보기 전에 냉장고부터 열어 보는 습관만으로도 버리는 식재료가 크게 줄어든다.','남은 채소는 잘게 썰어 달걀과 함께 부치면 훌륭한 [[오믈렛]]이 된다.','애매하게 남은 밥과 김치는 볶음밥으로, 시들어 가는 채소는 국으로 보내면 된다.','냉장고 문에 남은 재료를 적어 두는 [[메모]]를 붙여 두면 무엇을 먼저 써야 할지 한눈에 보인다.','새로운 재료를 사는 것보다 있는 재료로 한 끼를 만드는 일이 요리 실력을 더 빨리 늘려 준다.']},
+  {t:'셰프들이 칼질 빠른 이유, 손 모양 하나였다',b:['칼질이 서툰 이유는 대부분 칼보다 재료를 잡은 손에 있다.','재료를 잡는 손은 손가락 끝을 안쪽으로 구부린 [[고양이 손]] 모양을 만든다. 손톱 쪽이 칼날을 향하지 않게 하는 것이 핵심이다.','칼은 위에서 내리찍기보다 앞으로 밀며 자르면 힘이 덜 든다.','처음에는 속도보다 같은 [[두께]]로 자르는 데 집중해 보자. 두께가 같아야 고르게 익는다.','양파 하나를 천천히 다 써는 것만으로도 손이 조금씩 길을 기억한다.']},
+  {t:"같은 쌀로 식당 밥맛 내는 물 비율",b:["밥맛은 쌀보다 물의 양에서 더 크게 달라진다.", "쌀을 씻은 뒤 30분 정도 [[불려]] 두면 속까지 고르게 익는다.", "냄비 밥이라면 쌀 위로 손등이 살짝 잠길 만큼의 물이 기본이다.", "불을 끈 뒤 바로 열지 말고 10분 정도 [[뜸]]을 들이면 밥알이 탱탱해진다.", "한 번 맛있게 된 물의 양을 기억해 두면 그다음부터는 실패가 줄어든다."]},
+  {t:"이 양념장 하나면 일주일 반찬 끝",b:["간장, 설탕, 다진 마늘, 참기름을 섞은 기본 양념장 하나만 있어도 요리가 훨씬 쉬워진다.", "이 양념장에 고기를 재우면 [[불고기]]가 되고, 채소와 볶으면 간단한 볶음 요리가 된다.", "물을 조금 더해 끓이면 조림 양념으로도 쓸 수 있다.", "양념장을 미리 만들어 [[병]]에 담아 두면 바쁜 날에도 한 끼가 빨라진다.", "기본을 하나 익혀 두면 그 위에 새로운 맛을 더하는 건 어렵지 않다."]},
+  {t:"일주일 지나도 싱싱한 채소 보관 꿀팁",b:["채소는 사 온 날 그대로 냉장고에 넣으면 생각보다 빨리 시든다.", "잎채소는 [[키친타월]]로 감싸 습기를 조절해 주면 훨씬 오래간다.", "당근이나 무처럼 단단한 채소는 신문지에 싸서 서늘한 곳에 두는 것이 좋다.", "대파나 버섯처럼 금방 쓰기 애매한 재료는 손질해서 [[냉동]]해 두면 필요할 때 바로 꺼내 쓸 수 있다.", "보관을 잘하면 장 보는 횟수도, 버리는 양도 함께 줄어든다."]}
+ ],
+ 여행:[
+  {t:'백팩 하나로 2박 3일, 짐 싸기 끝판왕',b:['혼자 떠나는 여행에서는 짐이 가벼울수록 마음도 가벼워진다.','옷은 입을 날짜만큼이 아니라, 서로 섞어 입을 수 있는 [[조합]]으로 고른다.','충전기, 보조 배터리, 상비약은 작은 파우치 하나에 모아 두면 찾느라 헤매지 않는다.','짐을 다 싼 뒤 한 번 더 열어 보고, 이번 여행에서 정말 쓸 것만 남기는 [[덜어내기]]를 해 보자.','남은 빈 공간은 여행지에서 만날 무언가를 위한 자리다.']},
+  {t:'관광객은 모르는 현지인 골목 루트 찾는 법',b:['유명한 장소를 바쁘게 도는 대신, 한 동네를 정해 천천히 걸어 보는 여행도 있다.','지도를 잠시 닫고 마음이 끌리는 [[골목]]으로 들어가 보자.','동네 시장이나 오래된 빵집처럼 그곳 사람들이 매일 가는 곳에 들르면 여행지가 생활의 공간으로 보인다.','걷다가 마음에 든 장면이 있으면 사진보다 먼저 몇 분 동안 [[멈춰]] 바라본다.','그렇게 남은 장면은 사진보다 오래 기억에 머문다.']},
+  {t:'갤러리에 묵혀 둔 여행 사진 살리는 법',b:['여행이 끝나면 수백 장의 사진이 남지만, 다시 열어 보는 일은 많지 않다.','돌아온 다음 날, 가장 좋았던 사진 열 장만 골라 보자. 고르는 과정에서 여행이 한 번 더 [[정리]]된다.','고른 사진마다 그때의 소리나 냄새, 했던 말을 한 줄씩 적어 둔다.','사진과 짧은 글을 묶어 작은 [[여행 노트]]를 만들면, 몇 년 뒤에도 그날로 돌아갈 수 있다.','기록은 많을수록 좋은 것이 아니라, 다시 보고 싶을 만큼만 있을 때 가치가 생긴다.']},
+  {t:"여행 다녀와서 통장 텅장 안 되는 예산법",b:["여행 예산은 막연히 정하면 대부분 초과하게 된다.", "먼저 교통과 숙소처럼 이미 정해진 [[고정비]]를 적고, 남은 금액을 하루 단위로 나눠 보자.", "하루 예산 안에는 식비와 입장료, 그리고 예상하지 못한 지출을 위한 여유분을 함께 넣는다.", "여행 중에는 저녁마다 그날 쓴 돈을 간단히 [[기록]]해 두면 남은 날을 조절하기 쉽다.", "예산은 여행을 제한하는 것이 아니라, 돈 걱정 없이 즐기기 위한 준비다."]},
+  {t:"여행 중 비 오면 오히려 이득인 이유",b:["여행 중 비가 오면 계획이 틀어졌다는 생각에 기분까지 가라앉기 쉽다.", "하지만 비 오는 날에만 볼 수 있는 [[풍경]]이 있다. 젖은 돌길, 흐린 바다, 창밖의 빗소리 같은 것들이다.", "실내 일정 몇 개를 미리 후보로 적어 두면 갑자기 비가 와도 당황하지 않는다.", "작은 동네 서점이나 카페에서 오래 머무는 [[느린]] 하루는 오히려 기억에 오래 남는다.", "계획대로 되지 않은 날이 여행의 이야기가 되곤 한다."]},
+  {t:"기차 예매할 때 이 자리 고르면 풍경 대박",b:["기차 여행에서는 어느 쪽 창가에 앉느냐에 따라 보이는 풍경이 완전히 달라진다.", "해안선을 따라 달리는 노선이라면 [[바다]]가 보이는 쪽을 미리 확인해 예매하자.", "오후에 출발한다면 해가 드는 방향도 고려하는 것이 좋다. 햇빛이 정면으로 들면 눈이 쉽게 피로해진다.", "이동 시간을 그냥 흘려보내지 말고 창밖 풍경을 [[스케치]]하거나 짧게 적어 보는 것도 좋다.", "목적지에 도착하기 전부터 여행은 이미 시작되어 있다."]}
+ ],
+ 음악:[
+  {t:'틀기만 하면 집중력 2배 되는 플리 만드는 법',b:['작업용 음악은 귀를 사로잡기보다 배경처럼 흘러가는 것이 좋다.','가사가 있는 노래는 글을 쓰거나 읽을 때 생각을 방해하기 쉬워 [[연주곡]] 위주로 고르는 편이 낫다.','템포가 비슷한 곡끼리 묶으면 곡이 바뀔 때 집중이 덜 깨진다.','플레이리스트의 길이를 작업 시간에 맞춰 두면 음악이 끝나는 순간이 자연스러운 [[휴식]] 신호가 된다.','같은 플레이리스트를 반복해 들으면 음악이 시작되는 것만으로도 몸이 작업 모드로 바뀐다.']},
+  {t:'셔플만 듣던 사람이 앨범에 빠지게 된 순간',b:['좋아하는 노래 한 곡만 듣는 것과, 앨범 전체를 처음부터 끝까지 듣는 것은 전혀 다른 경험이다.','앨범은 곡의 [[순서]]까지 고민해서 만든 하나의 이야기다.','처음 들을 때는 다른 일을 하지 않고 이어폰을 낀 채 앨범 한 장을 끝까지 들어 보자.','두 번째 들을 때는 한 악기만 따라가며 들어 보면 이전에 들리지 않던 [[소리]]가 들린다.','다 들은 뒤 가장 기억에 남는 곡 하나를 적어 두면 그 앨범이 나만의 기억으로 남는다.']},
+  {t:'기타 독학 7일 만에 노래 한 곡 치는 법',b:['기타를 처음 잡으면 손끝이 아프고 소리가 깨끗하게 나지 않는 것이 당연하다.','첫 주에는 노래 한 곡보다 기본 [[코드]] 세 개를 깨끗하게 잡는 데 집중해 보자.','코드를 바꿀 때 손가락을 한 번에 다 옮기기보다, 남겨 둘 수 있는 손가락을 찾으면 훨씬 빨라진다.','하루 15분씩, 아픈 손끝이 [[굳은살]]로 바뀔 때까지 짧게 자주 연습하는 것이 좋다.','일주일 뒤 세 코드로 아는 노래 한 소절을 칠 수 있다면 충분히 잘한 것이다.']},
+  {t:"내 취향 음악이 끝없이 나오는 검색법",b:["좋아하는 노래는 많은데 어떤 음악을 좋아하는지 설명하기 어려울 때가 있다.", "좋아하는 곡 열 개를 모아 공통점을 찾아보자. [[템포]], 악기, 목소리 중 무엇이 겹치는지 보인다.", "그 공통점으로 장르 이름을 검색하면 비슷한 음악이 줄줄이 이어진다.", "한 장르 안에서도 오래된 곡부터 최근 곡까지 거슬러 듣다 보면 음악의 [[뿌리]]가 보인다.", "내 취향을 말로 설명할 수 있게 되면 음악을 찾는 일이 훨씬 즐거워진다."]},
+  {t:"콘서트 200% 즐기는 사람들은 이걸 미리 한다",b:["공연을 보러 가기 전에 그 가수의 최근 곡 몇 개를 미리 들어 두면 현장이 훨씬 즐겁다.", "특히 [[떼창]]이나 응원법이 있는 곡은 미리 익혀 두면 공연의 일부가 된다.", "휴대폰으로 모든 순간을 찍기보다 가장 좋아하는 곡 하나는 눈으로만 보자.", "공연이 끝난 뒤 그날의 [[셋리스트]]를 찾아 다시 들으면 현장의 기억이 오래 이어진다.", "음악은 같은 곡이어도 함께 들은 공간과 사람에 따라 다르게 기억된다."]},
+  {t:"매일 이어폰 끼는 사람, 지금 볼륨 확인하세요",b:["이어폰으로 오래 음악을 들으면 나도 모르게 볼륨이 점점 올라간다.", "최대 볼륨의 [[60퍼센트]] 이하로, 한 시간 들으면 잠깐 쉬는 것이 귀를 지키는 기본이다.", "시끄러운 지하철에서는 볼륨을 올리기보다 주변 소음을 줄여 주는 기능을 쓰는 편이 낫다.", "귀가 먹먹하거나 삐 소리가 들린다면 이미 귀가 [[피로]]하다는 뜻이다.", "오래 듣고 싶은 음악일수록 귀를 아껴야 한다."]}
+ ],
+ 재테크:[
+  {t:'월급 들어오자마자 사라지는 사람 필독',b:['돈 관리를 처음 시작할 때 가장 쉬운 방법은 통장을 목적별로 나누는 것이다.','월급이 들어오는 통장, 생활비 통장, [[비상금]] 통장, 저축 통장으로 나누면 돈의 흐름이 눈에 보인다.','월급이 들어오면 저축할 돈부터 먼저 옮기고, 남은 돈으로 생활하는 순서가 중요하다.','생활비 통장에 정해진 금액만 넣어 두면 지출을 따로 계산하지 않아도 자연스럽게 [[한도]]가 생긴다.','처음부터 완벽할 필요는 없다. 한 달을 지내 보고 비율을 조금씩 조정하면 된다.']},
+  {t:'가계부 3일 만에 포기한 사람도 1년 쓰는 법',b:['가계부를 며칠 쓰다 그만두는 이유는 대부분 너무 자세히 쓰려고 하기 때문이다.','오래 쓰는 사람들은 항목을 [[단순하게]] 나눈다. 식비, 교통비, 고정비, 기타 정도면 충분하다.','매일 쓰기 어렵다면 일주일에 한 번 카드 내역을 보며 한꺼번에 정리해도 괜찮다.','중요한 것은 숫자를 맞추는 것보다, 한 달이 끝났을 때 어디에 가장 많이 썼는지 [[돌아보는]] 일이다.','그 한 가지를 알게 되는 것만으로도 다음 달의 선택이 달라진다.']},
+  {t:'커피값으로 시작해 목돈 만든 사람들의 비밀',b:['저축은 큰돈이 생겼을 때 시작하는 것이 아니라 작은 금액으로 먼저 익숙해지는 일이다.','매일 커피값만큼을 따로 모아 보거나, 주마다 금액을 조금씩 늘리는 [[챌린지]]를 해 보자.','자동이체를 걸어 두면 의지와 상관없이 돈이 모인다.','모은 돈에 이름을 붙여 두는 것도 효과적이다. 여행, 노트북처럼 [[목표]]가 보이면 꺼내 쓰고 싶은 마음이 줄어든다.','금액보다 이어 가는 기간이 습관을 만든다.']},
+  {t:"모르면 손해 보는 신용점수 올리는 습관",b:["신용점수는 대출을 받을 때만 중요한 것이 아니라 생활 곳곳에서 영향을 준다.", "가장 기본은 카드값과 공과금을 [[연체]] 없이 제때 내는 것이다.", "체크카드를 꾸준히 쓰거나 통신비를 성실히 납부한 기록도 점수에 도움이 된다.", "가끔 신용점수를 조회해 [[변화]]를 확인해 두면 문제가 생겼을 때 빨리 알아챌 수 있다.", "신용은 한 번에 쌓이지 않지만, 한 번에 무너질 수는 있다."]},
+  {t:"매달 몰래 빠져나가던 돈, 찾아보니 충격",b:["한 달에 몇천 원씩 나가는 구독 서비스는 하나하나는 작아 보여도 모이면 큰돈이 된다.", "카드 내역을 열고 매달 [[자동결제]]되는 항목을 모두 적어 보자.", "지난 한 달 동안 한 번도 쓰지 않은 서비스가 있다면 그것부터 해지한다.", "정말 필요한 서비스만 남긴 뒤 해지 날짜를 [[달력]]에 적어 두면 무료 체험이 유료로 넘어가는 일을 막을 수 있다.", "정리한 금액만큼을 저축으로 옮기면 그 자체로 새로운 저축 습관이 된다."]},
+  {t:"사회초년생이 제일 많이 헷갈리는 적금 vs 예금",b:["처음 저축을 시작할 때 가장 많이 하는 고민이 적금과 예금의 차이다.", "적금은 매달 일정한 돈을 [[나눠서]] 넣는 방식이고, 예금은 목돈을 한 번에 맡기는 방식이다.", "아직 모아 둔 돈이 없다면 적금으로 저축 습관부터 만드는 것이 좋다.", "적금이 끝나 [[목돈]]이 생기면 그 돈을 예금에 넣고, 다시 새로운 적금을 시작하는 식으로 이어 갈 수 있다.", "중요한 것은 이자율보다 끊기지 않는 흐름이다."]}
+ ],
+ 자기계발:[
+  {t:'갓생 사는 사람들의 아침 30분 루틴',b:['아침 루틴은 하루를 내가 먼저 시작했다는 감각을 준다.','처음부터 많은 것을 넣지 말고, 물 한 잔 마시기와 [[계획]] 세 줄 적기처럼 작은 일부터 시작하자.','휴대폰을 보기 전에 루틴을 먼저 하는 것이 핵심이다. 첫 화면이 하루의 방향을 정하기 쉽다.','루틴을 놓친 날에도 자책하기보다 다음 날 다시 [[시작]]하면 된다.','삼십 분이 길다면 십 분으로 줄여도 좋다. 중요한 것은 매일 이어진다는 사실이다.']},
+  {t:'투두리스트가 매일 밀리는 사람들의 공통점',b:['할 일 목록이 늘 남아 있는 이유는 해야 할 일과 하고 싶은 일, 할 수도 있는 일이 섞여 있기 때문이다.','목록을 쓰고 나면 오늘 꼭 끝낼 일 [[세 가지]]에만 표시를 해 보자.','큰 일은 바로 시작할 수 있는 작은 행동으로 쪼갠다. 보고서 쓰기가 아니라 목차 세 줄 쓰기처럼.','하루가 끝나면 끝내지 못한 일을 다음 날로 옮기기 전에, 정말 필요한 일인지 한 번 더 [[덜어내는]] 시간을 갖자.','목록은 나를 몰아세우는 도구가 아니라 하루를 정리해 주는 도구다.']},
+  {t:'하루 한 줄 기록이 인생을 바꾸는 이유',b:['머릿속에만 있던 생각은 흐릿하지만, 글로 적는 순간 모양이 생긴다.','하루 한 줄이라도 오늘 배운 것이나 느낀 것을 적어 보자. 적는 과정에서 생각이 한 번 더 [[정리]]된다.','기록은 잘 쓰려고 할수록 미루게 된다. 문장이 아니어도 단어 몇 개면 충분하다.','한 달 뒤 기록을 다시 읽어 보면 내가 무엇에 관심을 두고 살았는지 [[흐름]]이 보인다.','저장해 둔 정보보다, 내가 직접 적은 한 줄이 더 오래 나를 바꾼다.']},
+  {t:"폰 보다가 1시간 날리는 사람을 위한 25분 법칙",b:["한 가지 일에 오래 집중하기 어렵다면 시간을 짧게 나눠 보자.", "25분 동안 한 가지 일만 하고 5분 쉬는 방식을 [[뽀모도로]]라고 부른다.", "25분 동안에는 알림을 끄고, 떠오르는 다른 일은 종이에 적어 두기만 한다.", "네 번을 반복한 뒤에는 조금 더 길게 쉬면서 몸을 [[움직여]] 주자.", "짧게 집중하는 시간이 쌓이면 긴 집중도 조금씩 가능해진다."]},
+  {t:"실력이 멈춘 것 같을 때 포기하면 안 되는 이유",b:["무언가를 배우기 시작하면 처음에는 빠르게 늘다가 어느 순간 멈춘 것처럼 느껴진다.", "이 시기를 [[정체기]]라고 부르는데, 실력이 늘지 않는 것이 아니라 보이지 않게 쌓이는 중이다.", "이럴 때는 같은 연습을 반복하기보다 방법을 조금 바꿔 보는 것이 도움이 된다.", "처음 배웠을 때의 기록과 지금을 [[비교]]해 보면 생각보다 많이 온 것을 알게 된다.", "멈춘 것 같은 시간을 버틴 사람만 다음 단계로 넘어간다."]},
+  {t:"작심삼일 끝내는 목표 크기의 비밀",b:["목표가 너무 크면 시작하기 전부터 지치고, 너무 작으면 금방 흥미를 잃는다.", "좋은 목표는 조금 [[버거운]] 정도, 노력하면 닿을 수 있을 만큼의 크기다.", "큰 목표 하나를 정했다면 이번 주에 할 수 있는 작은 목표로 나눠 적어 보자.", "목표를 이루었을 때 스스로에게 줄 작은 [[보상]]을 미리 정해 두는 것도 좋은 방법이다.", "목표는 나를 재촉하기 위한 것이 아니라 방향을 잃지 않기 위한 것이다."]}
+ ],
+ 연애:[
+  {t:"썸에서 연애로 넘어가는 사람들의 결정적 한 마디",b:["썸이 길어지는 이유는 대부분 서로의 마음을 확인할 말이 나오지 않아서다.", "관계를 한 단계 넘기는 사람들은 거창한 고백보다 [[구체적인]] 약속을 먼저 꺼낸다. 다음 주 토요일에 같이 가자처럼.", "확실한 날짜와 장소가 있는 제안은 상대가 마음을 표현하기 쉬운 문을 열어 준다.", "대답을 재촉하기보다 상대의 반응을 기다려 주는 [[여유]]가 오히려 신뢰를 만든다.", "좋은 관계는 정답 같은 말보다 꾸준히 보여 주는 태도에서 시작된다."]},
+  {t:"연락 빈도로 마음 재는 사람, 이것부터 멈추세요",b:["답장이 늦으면 마음이 식었다고 느끼는 사람이 많다.", "하지만 연락 습관은 마음의 크기보다 사람마다 다른 [[생활 리듬]]에 더 가깝다.", "서로가 편한 연락 방식을 한 번쯤 솔직하게 이야기해 두면 불필요한 오해가 줄어든다.", "숫자로 마음을 재기 시작하면 관계가 [[확인]]의 연속이 되어 버린다.", "연락의 양보다 만났을 때의 대화가 관계를 더 정확하게 보여 준다."]},
+  {t:"오래 가는 커플들이 싸울 때 꼭 지키는 규칙",b:["다툼이 없는 커플보다 잘 다투는 커플이 더 오래 간다.", "그들은 싸울 때 상대의 성격이 아니라 지금 일어난 [[행동]]에 대해서만 이야기한다.", "너는 항상, 너는 절대 같은 말 대신 나는 이럴 때 서운했다고 말한다.", "감정이 너무 커졌을 때는 잠시 [[멈추고]] 다시 이야기할 시간을 정한다.", "싸움의 목적은 이기는 것이 아니라 서로를 조금 더 알게 되는 것이다."]},
+  {t:"첫 데이트 장소, 이렇게 고르면 대화가 끊기지 않는다",b:["첫 데이트에서 가장 어려운 것은 어색한 침묵이다.", "조용한 레스토랑보다 함께 [[구경]]할 거리가 있는 장소가 대화를 자연스럽게 만든다.", "전시, 시장, 산책길처럼 보이는 것에 대해 이야기할 수 있으면 질문이 이어진다.", "너무 긴 일정보다 두세 시간 정도로 짧게 잡으면 아쉬움이 [[다음]] 만남으로 이어진다.", "좋은 첫 데이트는 완벽한 장소가 아니라 편안한 대화에서 남는다."]},
+  {t:"이별 후 나를 회복시키는 30일",b:["이별 직후에는 모든 것이 그 사람과 연결되어 보인다.", "처음 며칠은 감정을 억지로 누르기보다 충분히 [[슬퍼하는]] 시간을 허락하자.", "그다음에는 작은 루틴을 하나씩 다시 세운다. 산책, 정해진 시간의 식사 같은 것들이다.", "연락하고 싶은 순간에는 그 마음을 [[편지]]로 적되 보내지 않는 방법도 도움이 된다.", "한 달 뒤의 나는 오늘보다 조금 더 가벼워져 있을 것이다."]},
+  {t:"연애할수록 내가 사라지는 사람들의 특징",b:["연애를 시작하면 모든 시간을 상대에게 맞추게 되는 사람이 있다.", "처음엔 배려처럼 보이지만 결국 나의 [[취향]]과 일정이 하나씩 사라진다.", "좋은 관계는 두 사람이 겹치는 부분과 각자의 영역이 함께 있을 때 건강하다.", "일주일에 하루쯤은 나만을 위한 [[시간]]을 지켜 보자.", "나를 지키는 사람이 상대도 더 오래 아낄 수 있다."]}
+ ],
+ 뷰티:[
+  {t:"피부과 의사들이 매일 하는 단 3가지",b:["좋은 피부를 위해 수십 가지 제품이 필요한 것은 아니다.", "피부 관리의 기본은 순한 세안, 충분한 보습, 그리고 매일의 [[자외선 차단]]이다.", "특히 자외선 차단제는 흐린 날과 실내에서도 바르는 것이 좋다.", "새 제품을 여러 개 한꺼번에 바꾸면 어떤 것이 맞지 않는지 알 수 없으니 [[하나씩]] 바꿔 보자.", "단순한 루틴을 오래 지키는 것이 가장 확실한 관리다."]},
+  {t:"화장 잘하는 사람들은 베이스부터 다르다",b:["화장의 완성도는 색조보다 베이스에서 결정된다.", "파운데이션을 두껍게 바르기보다 얇게 여러 번 [[레이어링]]하면 훨씬 자연스럽다.", "가려야 할 부분만 컨실러로 콕 집어 덮으면 전체는 가볍게 유지할 수 있다.", "마지막에 파우더를 얼굴 전체가 아니라 [[T존]]에만 두드리면 광이 살아 있다.", "베이스가 가벼우면 하루가 끝나도 무너짐이 덜하다."]},
+  {t:"퍼스널 컬러, 이거 모르고 사면 다 실패",b:["같은 립스틱도 누구에게는 화사하고 누구에게는 칙칙해 보인다.", "피부 바탕이 노란빛에 가까운지 붉은빛에 가까운지에 따라 어울리는 [[톤]]이 달라진다.", "자연광 아래에서 흰 종이를 얼굴 옆에 대 보면 바탕색을 짐작하기 쉽다.", "확실하지 않다면 화려한 색보다 내 입술색과 비슷한 [[뉴트럴]] 컬러부터 시작해 보자.", "색을 아는 것은 유행보다 나에게 맞는 것을 고르는 기준이 된다."]},
+  {t:"세안만 바꿨는데 피부결이 달라졌다",b:["피부 고민의 상당수는 세안 습관에서 시작된다.", "뜨거운 물은 피부를 건조하게 만들기 때문에 [[미온수]]로 씻는 것이 좋다.", "거품을 충분히 낸 뒤 손이 아니라 거품으로 문지르듯 닦아 낸다.", "세안 후에는 수건으로 비비지 말고 [[톡톡]] 눌러 물기를 닦는다.", "작은 습관 하나가 매일 쌓이면 피부결로 돌아온다."]},
+  {t:"향수 하나로 분위기가 달라지는 이유",b:["향은 사람을 기억하게 만드는 가장 강한 감각 중 하나다.", "향수는 처음 뿌렸을 때보다 시간이 지나 남는 [[잔향]]으로 고르는 것이 좋다.", "시향지보다 손목에 뿌리고 한두 시간 뒤의 향을 확인해 보자.", "뿌릴 때는 맥박이 뛰는 손목이나 귀 뒤처럼 [[체온]]이 있는 곳이 향을 오래 퍼뜨린다.", "나에게 맞는 향 하나는 말보다 먼저 나를 소개한다."]},
+  {t:"헤어 드라이만 잘해도 인상이 바뀐다",b:["같은 머리도 말리는 방법에 따라 볼륨과 인상이 완전히 달라진다.", "머리를 말릴 때는 끝이 아니라 [[뿌리]]부터 바람을 넣어야 볼륨이 산다.", "정수리 쪽은 가르마 반대 방향으로 말리면 납작해지지 않는다.", "마지막에 찬바람으로 한 번 [[고정]]해 주면 모양이 오래 유지된다.", "매일 하는 5분이 하루의 첫인상을 만든다."]}
+ ],
+ 패션:[
+  {t:"옷 많은데 입을 게 없는 사람들의 진짜 문제",b:["옷장이 가득한데도 입을 옷이 없다고 느끼는 경우가 많다.", "원인은 옷의 양이 아니라 서로 [[조합]]되지 않는 옷이 많기 때문이다.", "자주 입는 옷 열 벌을 꺼내 공통된 색과 핏을 찾아보자. 그게 나의 기본이다.", "새 옷을 살 때는 이미 가진 옷 세 벌과 [[어울리는지]] 먼저 떠올려 본다.", "옷장은 많이 채울 때보다 잘 맞물릴 때 넉넉해진다."]},
+  {t:"키 작아도 길어 보이는 코디 공식",b:["작은 키를 커버하려고 무조건 높은 신발을 신을 필요는 없다.", "상의와 하의, 신발의 색을 비슷하게 맞추면 몸이 하나의 [[세로선]]으로 이어져 보인다.", "상의를 하의 안에 살짝 넣어 허리 위치를 높이면 다리가 길어 보인다.", "바지 길이는 발목이 살짝 보이는 [[크롭]] 기장이 비율을 가볍게 만든다.", "비율은 키보다 선을 어떻게 나누느냐로 정해진다."]},
+  {t:"빈티지 쇼핑 고수들은 이것부터 본다",b:["빈티지 쇼핑은 같은 옷이 두 번 없다는 점에서 보물찾기와 비슷하다.", "고수들은 디자인보다 먼저 원단과 [[봉제]] 상태를 확인한다.", "겨드랑이, 소매 끝, 단추처럼 자주 닳는 부분을 살펴보면 옷의 상태가 보인다.", "사이즈 표기는 시대와 나라마다 다르니 꼭 [[실측]]을 확인하자.", "오래 입힌 옷을 다시 입는 것은 가장 개성 있는 선택이 된다."]},
+  {t:"기본템 5개로 일주일 돌려 입기",b:["매일 다른 옷을 입어야 한다는 생각이 아침을 바쁘게 만든다.", "흰 셔츠, 니트, 데님, 슬랙스, 재킷처럼 서로 잘 맞는 [[기본템]] 다섯 가지를 정해 보자.", "이 다섯 가지를 섞기만 해도 일주일 내내 다른 느낌을 낼 수 있다.", "변화는 액세서리나 신발 같은 작은 [[포인트]]로 주면 된다.", "옷 고르는 시간이 줄어들면 하루의 에너지가 남는다."]},
+  {t:"유행 따라 샀다가 후회하는 옷의 공통점",b:["한 철만 입고 옷장 속에 남는 옷들에는 공통점이 있다.", "대부분 내가 원래 입던 스타일과 너무 [[동떨어진]] 옷이다.", "유행 아이템은 전체가 아니라 가방이나 양말처럼 작은 부분으로 먼저 시도해 보자.", "사기 전에 이 옷을 [[세 번]] 이상 입을 장면이 떠오르는지 확인한다.", "유행은 지나가도 나에게 어울리는 것은 남는다."]},
+  {t:"옷 오래 입는 세탁법, 다들 반대로 한다",b:["좋은 옷도 세탁을 잘못하면 금방 모양이 망가진다.", "대부분의 옷은 [[뒤집어서]] 빨면 색 빠짐과 보풀이 줄어든다.", "니트는 세탁기 대신 미지근한 물에 손으로 눌러 빨고 눕혀서 말린다.", "건조기는 편하지만 열이 옷감을 [[수축]]시키니 라벨을 꼭 확인하자.", "옷을 오래 입는 것도 하나의 스타일이다."]}
+ ],
+ 반려동물:[
+  {t:"강아지가 보내는 사랑 신호, 이거 몰랐다면 손해",b:["반려견은 말 대신 몸짓으로 마음을 표현한다.", "보호자를 바라보며 천천히 [[눈을 깜빡이는]] 것은 편안하고 믿는다는 신호다.", "배를 보이며 눕는 것도 가장 약한 곳을 보여 줄 만큼 안심하고 있다는 뜻이다.", "꼬리는 흔드는 높이와 [[속도]]에 따라 의미가 달라지니 함께 살펴보자.", "작은 신호를 읽을 수 있게 되면 함께하는 시간이 훨씬 깊어진다."]},
+  {t:"고양이가 갑자기 우다다 하는 진짜 이유",b:["밤마다 고양이가 집 안을 질주하는 모습에 놀란 적이 있을 것이다.", "이것은 낮 동안 쓰지 못한 [[에너지]]를 한꺼번에 내보내는 자연스러운 행동이다.", "고양이는 원래 짧게 사냥하고 길게 쉬는 동물이라 놀이가 부족하면 이런 행동이 늘어난다.", "자기 전에 10분 정도 [[사냥 놀이]]를 해 주면 밤이 훨씬 조용해진다.", "행동의 이유를 알면 걱정이 이해로 바뀐다."]},
+  {t:"산책 10분이 반려견을 바꾸는 이유",b:["산책은 단순한 운동이 아니라 반려견이 세상을 읽는 시간이다.", "강아지는 산책길에서 [[냄새]]를 맡으며 다른 동물의 소식을 확인한다.", "그래서 빠르게 걷기보다 충분히 냄새를 맡게 기다려 주는 산책이 더 만족도가 높다.", "매일 비슷한 시간에 나가면 반려견의 [[불안]]이 줄고 생활 리듬이 안정된다.", "짧더라도 매일 이어지는 산책이 가장 좋은 선물이다."]},
+  {t:"처음 반려동물 들이기 전 꼭 체크할 5가지",b:["귀여운 모습만 보고 결정하기에는 함께할 시간이 아주 길다.", "먼저 하루에 반려동물을 위해 쓸 수 있는 [[시간]]을 솔직하게 계산해 보자.", "병원비, 사료, 용품처럼 매달 드는 비용도 미리 확인해야 한다.", "집을 오래 비우는 일정이 있다면 돌봐 줄 [[사람]]이 있는지도 중요하다.", "준비된 보호자가 만나는 반려동물은 더 행복하게 산다."]},
+  {t:"우리 집 고양이가 물을 안 마신다면",b:["고양이는 원래 물을 많이 마시지 않는 동물이라 보호자가 신경 써 주어야 한다.", "물그릇을 밥그릇과 [[떨어뜨려]] 두면 더 자주 마시는 경우가 많다.", "흐르는 물을 좋아하는 고양이라면 정수기형 급수기를 써 보는 것도 방법이다.", "습식 사료를 함께 주면 자연스럽게 [[수분]]을 보충할 수 있다.", "작은 변화가 고양이의 건강을 오래 지켜 준다."]},
+  {t:"반려동물과 사진 잘 찍는 법",b:["반려동물 사진은 대부분 흔들리거나 뒷모습만 남기 쉽다.", "카메라를 보호자의 눈높이가 아니라 반려동물의 [[눈높이]]까지 낮춰 보자.", "간식이나 장난감을 카메라 바로 위에 들면 시선이 렌즈 쪽으로 온다.", "움직임이 많다면 연속 촬영으로 찍은 뒤 가장 좋은 [[순간]]을 고르면 된다.", "잘 찍은 한 장은 함께한 시간을 오래 기억하게 해 준다."]}
+ ]
+};
+
+/* ===================== 상태 ===================== */
+const S={name:'',id:'',gender:'여성',ints:[],nodes:[],words:[],log:[]};
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));}
+function toast(m,ms,mid){const t=$('#toast');t.textContent=m;t.classList.toggle('mid',!!mid);t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),ms||2200);}
+
+/* ===================== 1. 인트로 타이핑 ===================== */
+const INTRO=[
+ '> 현대인은 하루에도 수십 개의 정보를 저장한다.',
+ '> 스크린샷, 북마크, 저장 버튼.',
+ '> 우리는 판단하기 전에 먼저 저장하고,',
+ '> 저장한 것으로 나를 채웠다고 믿는다.',
+ '',
+ '> 그러나 나를 구성하는 것은 저장한 정보가 아니라',
+ '> 끝까지 읽어낸 정보다.',
+ '',
+ '@HOMO ARCHIVARIUS — 저장인류'
+];
+let introDone=false,introTimer=null;
+function runIntro(){
+  show('intro');const el=$('#introText');let li=0,ci=0,html='';
+  // 가장 긴 줄 폭으로 글 상자 폭을 고정 → 왼쪽 정렬 그대로, 덩어리 전체는 화면 가운데
+  el.style.width='max-content';el.style.visibility='hidden';el.innerHTML=INTRO.map(l=>l.startsWith('@')?`<span class="en">${esc(l.slice(1))}</span>`:esc(l)).join('\n')+'<span class="cur"></span>';
+  el.style.width=Math.ceil(el.getBoundingClientRect().width)+'px';el.style.visibility='';el.innerHTML='';
+  const render=(cur)=>{el.innerHTML=html+(cur||'')+'<span class="cur"></span>';};
+  const step=()=>{
+    if(introDone)return;
+    if(li>=INTRO.length){introTimer=setTimeout(endIntro,1100);return;}
+    const line=INTRO[li];const isEn=line.startsWith('@');const txt=isEn?line.slice(1):line;
+    if(ci<=txt.length){const part=esc(txt.slice(0,ci));render(isEn?`<span class="en">${part}</span>`:part);ci++;introTimer=setTimeout(step,txt.length?(isEn?70:42):10);}
+    else{html+=(isEn?`<span class="en">${esc(txt)}</span>`:esc(txt))+'\n';li++;ci=0;introTimer=setTimeout(step,txt?320:200);}
+  };
+  if(reduce){html=INTRO.map(l=>l.startsWith('@')?`<span class="en">${esc(l.slice(1))}</span>`:esc(l)).join('\n');render();introTimer=setTimeout(endIntro,2500);}else step();
+}
+function endIntro(){if(introDone)return;introDone=true;clearTimeout(introTimer);showTitle();}
+$('#skip').addEventListener('click',endIntro);
+
+/* ===================== 2. 타이틀 ===================== */
+let titleRAF=0;
+function showTitle(){
+  show('title');document.querySelectorAll('.tlogo i').forEach(el=>{el.style.setProperty('--t',(3.5+Math.random()*4).toFixed(2)+'s');el.style.setProperty('--dl',(1.5+Math.random()*3).toFixed(2)+'s');el.style.setProperty('--jx',(Math.random()*4-2).toFixed(1)+'px');el.style.setProperty('--jy',(Math.random()*4-2).toFixed(1)+'px');});const cv=$('#dotfield'),c=cv.getContext('2d');let Wt=0,Ht=0;
+  const fit=()=>{const d=Math.min(2,devicePixelRatio||1);Wt=cv.clientWidth||innerWidth;Ht=cv.clientHeight||innerHeight;cv.width=Wt*d;cv.height=Ht*d;c.setTransform(d,0,0,d,0,0);};fit();addEventListener('resize',fit);
+  let mx=-999,my=-999;const tEl=$('#title');tEl.onmousemove=e=>{const r=cv.getBoundingClientRect();mx=(e.clientX-r.left)*Wt/r.width;my=(e.clientY-r.top)*Ht/r.height;};tEl.onmouseleave=()=>{mx=my=-999;};
+  const titles=Object.entries(CONTENT).flatMap(([k,v])=>v.map(x=>[k,x.t]));
+  const files=['스크린샷_','저장한_게시물_','나중에_읽기_','북마크_','캡처_'];
+  const pops=[];let saved=1284392,lastFeed=0,lastPop=0;
+  const T0=performance.now();const sp=12,sz=8;
+  const loop=now=>{const t=(now-T0)/1000;c.clearRect(0,0,Wt,Ht);
+    // 1) 촘촘한 네모 픽셀 바닥 + 흐르는 물결
+    const bw=BW,bh=BH,bc=Math.floor(Ht*1.7/bh),bx=Wt*0.74-bw*bc/2,by=Ht*0.08; // 실루엣을 오른쪽에 크게, 머리 위 여백
+    for(let y=sp/2;y<Ht;y+=sp)for(let x=sp/2;x<Wt;x+=sp){
+      let v=reduce?.3:.5+.5*Math.sin(t*1.1+x*.011+y*.016)*Math.sin(t*.7-y*.009);
+      const gx=Math.floor((x-bx)/bc),gy=Math.floor((y-by)/bc);const inBody=gy>=0&&gy<bh&&gx>=0&&gx<bw&&BODY[gy][gx]==='#';
+      const dm=Math.hypot(x-mx,y-my);const near=dm<140?(1-dm/140):0; // 커서를 중심으로
+      const a=inBody?.16+.12*v:.035+.06*v*v;c.fillStyle=`rgba(69,255,60,${Math.min(.95,a+near*.6)})`;c.fillRect(x-sz/2,y-sz/2,sz,sz);}
+    // 2) 끊임없이 뜨는 '저장됨' 알림
+    if(!reduce&&now-lastPop>220&&pops.length<12){lastPop=now;const [k,ti]=titles[Math.floor(Math.random()*titles.length)];
+      const txt=Math.random()<.45?`▣ SAVED  ${files[Math.floor(Math.random()*files.length)]}${String(Math.floor(Math.random()*9000)+1000)}.png`:`▣ 저장됨  #${k}  ${ti}`;
+      c.font='12px "Nanum Gothic Coding", monospace';const w=c.measureText(txt).width+20;
+      // 피할 영역: 제목 묶음 전체, START 줄 전체(제목 박스 폭만큼), 네 모서리 글자
+      const R=q=>document.querySelector(q).getBoundingClientRect(),tb=R('#title .tbox'),tm=R('#title .tmain'),ts=R('#title .tstart');
+      const avoid=[{left:tb.left,right:tb.right,top:tm.top,bottom:tm.bottom},{left:tb.left,right:tb.right,top:ts.top,bottom:ts.bottom},...[...document.querySelectorAll('#title .hud')].map(e=>e.getBoundingClientRect())];
+      let px,py,ok=false;for(let tries=0;tries<30&&!ok;tries++){px=32+Math.random()*(Wt-w-64);py=96+Math.random()*(Ht-96-110-26);
+        const inCenter=avoid.some(r=>px+w>r.left-28&&px<r.right+28&&py+26>r.top-24&&py<r.bottom+24);
+        const hit=pops.some(q=>px<q.x+q.w+8&&px+w+8>q.x&&py<q.y+34&&py+34>q.y);ok=!inCenter&&!hit;}
+      if(ok)pops.push({x:px,y:py,w,t0:now,txt});}
+    c.font='12px "Nanum Gothic Coding", monospace';c.textBaseline='middle';
+    for(let i=pops.length-1;i>=0;i--){const p=pops[i],age=(now-p.t0)/1000;if(age>2.6){pops.splice(i,1);continue;}
+      const a=.5*(age<.15?age/.15:age>1.8?1-(age-1.8)/.8:1);const w=p.w; // 최대 50%
+      c.fillStyle=`rgba(0,0,0,${.85*a})`;c.fillRect(p.x,p.y,w,26);c.strokeStyle=`rgba(69,255,60,${.7*a})`;c.lineWidth=1;c.strokeRect(p.x+.5,p.y+.5,w-1,25);
+      c.fillStyle=`rgba(69,255,60,${a})`;c.fillText(p.txt,p.x+10,p.y+13);}
+    // 3) 카운터와 로그: 저장은 계속 늘고, 읽은 것은 0
+    saved+=reduce?0:Math.floor(Math.random()*37)+3;$('#cSaved').textContent=saved.toLocaleString('en-US');
+    if($('#title').classList.contains('on'))titleRAF=requestAnimationFrame(loop);};
+  titleRAF=requestAnimationFrame(loop);
+}
+function startInput(){cancelAnimationFrame(titleRAF);show('input');setTimeout(()=>$('#fName').focus(),50);}
+$('#startBtn').addEventListener('click',startInput);
+addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&$('#intro').classList.contains('on')){endIntro();}
+  else if(e.key==='Enter'&&$('#title').classList.contains('on')){startInput();}
+  else if(e.key==='Escape'){if($('#info').classList.contains('on'))closeInfo();if($('#confirm').classList.contains('on'))$('#confirm').classList.remove('on');}
+});
+
+/* ===================== 3. 사용자 정보 입력 ===================== */
+const iChips=$('#iChips');
+$('#fName').addEventListener('input',()=>$('#fName').classList.remove('need'));
+INTERESTS.forEach(k=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=k;b.dataset.v=k;b.setAttribute('aria-pressed','false');iChips.appendChild(b);});
+iChips.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const on=b.getAttribute('aria-pressed')==='true';
+  const n=iChips.querySelectorAll('[aria-pressed="true"]').length;if(!on&&n>=3){$('#iHint').textContent='관심사는 최대 3개까지 고를 수 있어요';$('#iHint').style.color='';return;}
+  b.setAttribute('aria-pressed',String(!on));$('#iHint').textContent=`${iChips.querySelectorAll('[aria-pressed="true"]').length} / 3 선택됨`;$('#iHint').style.color='var(--g2)';});
+$('#gChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;$('#gChips').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
+$('#form').addEventListener('submit',async e=>{e.preventDefault();
+  const raw=$('#fName').value.trim(),pid=parseId(raw);
+  const ints=[...iChips.querySelectorAll('[aria-pressed="true"]')].map(b=>b.dataset.v);
+  if(!raw){$('#err').textContent='';$('#fName').classList.add('need');$('#fName').focus();return;}
+  if(!ints.length){$('#err').textContent='> 관심사를 하나 이상 골라 주세요.';return;}
+  const gender=$('#gChips [aria-pressed="true"]').dataset.v,btn=$('#form button[type=submit]');
+  $('#err').textContent='';$('#fName').classList.remove('need');btn.disabled=true;
+  try{
+    if(pid){ // 이름#코드 → 이전 기록 이어서
+      const r=(recFor===pid.id&&recData0)||await loadRec(pid.id);
+      if(!r){$('#err').textContent=`> ${pid.id} 기록을 찾을 수 없어요. 코드를 확인하거나 이름만 입력해 새로 시작하세요.`;return;}
+      const same=r.ints.length===ints.length&&r.ints.every(k=>ints.includes(k));
+      Object.assign(S,{name:pid.name,id:pid.id,isNew:!same,gender,ints});startMain(same?r:null);
+    }else{ // 이름만 → 새 코드 발급
+      const name=raw.replace(/#.*$/,'').trim();$('#err').textContent='> 나만의 코드를 만드는 중…';
+      const code=await newCode(name);$('#err').textContent='';
+      Object.assign(S,{name,id:name+'#'+code,isNew:true,gender,ints});startMain(null);
+    }
+  }finally{btn.disabled=false;}
+});
+
+/* ===================== 기록 저장 · 불러오기 (이름#코드) =====================
+   SAVE_URL 에 구글 Apps Script 웹 앱 주소를 넣으면 구글 시트에 저장되어 다른 컴퓨터에서도 이어집니다.
+   비워 두거나 연결이 안 되면 이 브라우저에만 저장됩니다. */
+const SAVE_URL='https://script.google.com/macros/s/AKfycbz2dXWBR9bw8Zj71aN83yflrdiv8UfV-jluzHYo5CbN0uV4ndOtIDJzYenn3GWNbVwG/exec';
+const RKEY=id=>'homo-archivarius:v2:'+id;
+const parseId=v=>{const m=String(v).trim().match(/^(.+?)\s*#\s*(\d{4})$/);return m?{name:m[1].trim(),code:m[2],id:m[1].trim()+'#'+m[2]}:null;};
+function loadLocal(id){try{const v=localStorage.getItem(RKEY(id));return v?JSON.parse(v):null;}catch(e){return null;}}
+function saveLocal(id,d){try{localStorage.setItem(RKEY(id),JSON.stringify(d));}catch(e){}}
+async function remote(params){const r=await fetch(SAVE_URL+'?'+new URLSearchParams(params));return r.json();}
+async function loadRec(id){ // 시트 → 없으면 브라우저
+  if(SAVE_URL){try{const j=await remote({action:'get',id});if(j.ok&&j.found&&j.data&&j.data.nodes)return j.data;}catch(e){}}
+  return loadLocal(id);}
+async function newCode(name){ // 시트에서 겹치지 않는 4자리 코드 받기 → 안 되면 브라우저에서 만들기
+  if(SAVE_URL){try{const j=await remote({action:'create',name});if(j.ok)return j.code;}catch(e){}}
+  let c;do{c=String(1000+Math.floor(Math.random()*9000));}while(loadLocal(name+'#'+c));return c;}
+function recData(){return{name:S.name,gender:S.gender,ints:S.ints,words:S.words,log:S.log.slice(0,10),t:Date.now(),nodes:S.nodes.map(n=>({k:n.k,i:n.i,done:n.done,got:n.got,progress:n.progress}))};}
+let putT=0;
+function saveRec(){if(!S.id||!S.nodes.length)return;const d=recData();saveLocal(S.id,d);
+  if(SAVE_URL){clearTimeout(putT);putT=setTimeout(()=>{fetch(SAVE_URL,{method:'POST',body:JSON.stringify({id:S.id,data:d})}).catch(()=>{});},1200);}}
+let recFor=null,recData0=null,recSeq=0;
+async function checkRec(){const v=$('#fName').value.trim(),h=$('#recHint'),pid=parseId(v);recFor=null;recData0=null;
+  if(!pid){h.innerHTML=v&&v.includes('#')?'&gt; 코드는 이름 뒤에 # 과 숫자 4자리로 입력해요 (예: 하선희#3821)':'';return;}
+  const seq=++recSeq;h.innerHTML='&gt; 기록을 찾는 중…';const r=await loadRec(pid.id);if(seq!==recSeq)return;
+  if(!r){h.innerHTML=`&gt; <b>${esc(pid.id)}</b> 기록을 찾을 수 없어요. 코드를 다시 확인해 주세요`;return;}
+  recFor=pid.id;recData0=r;const n=r.nodes.filter(x=>x.done).length;
+  $('#gChips').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===r.gender)));
+  iChips.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(r.ints.includes(x.dataset.v))));
+  $('#iHint').textContent=`${r.ints.length} / 3 선택됨`;
+  const d=new Date(r.t);h.innerHTML=`&gt; 다시 오셨네요 · 읽어낸 정보 <b>${n}개</b> · 수집한 단어 <b>${r.words.length}개</b> (${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')})<br>&gt; 이대로 불러오면 이어서 읽을 수 있고, 관심사를 바꾸면 새로 시작해요`;}
+let recT=0;$('#fName').addEventListener('input',()=>{clearTimeout(recT);recT=setTimeout(checkRec,350);});
+
+/* ===================== 4. 메인: 점 캐릭터 ===================== */
+const cv=$('#cv'),ctx=cv.getContext('2d');
+let W=0,H=0,dots=[],F=0,CX=0,CY=0,genT0=0,hover=null;
+// 몸통 실루엣: 그려 준 몸통.png(1440×3600)를 48px = 1칸, 가장자리를 부드럽게 다듬은 마스크 (# = 칸) — 정보 칸과 같은 크기
+const BODY=["...........####...........", "........##########........", "......##############......", ".....################.....", "....##################....", "....##################....", ".########################.", "##########################", "##########################", "##########################", "##########################", "##########################", "....##################....", ".....################.....", "......##############......", ".......############.......", ".........########.........", "...........####...........", "...........####...........", "..........######..........", "........##########........", ".......############.......", ".......############.......", "......##############......", "......##############......", ".....################.....", ".....################.....", ".....################.....", "....##################....", "....##################....", "....##################....", "....###.##########.###....", "...####.##########.####...", "...####.##########.####...", "..####..##########..####..", "..####..##########..####..", ".####..############..####.", ".####..############..####.", ".####..############..####.", "..##...############...##..", ".......############.......", ".......############.......", ".......############.......", ".......############.......", ".......############.......", ".......############.......", ".......############.......", ".......############.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......#####..#####.......", ".......####....####.......", ".......####....####.......", ".......####....####.......", ".......####....####.......", ".......####....####.......", "......#####....#####......", ".....#######..#######.....", "....########..########....", "....########..########....", "....#######....#######....", ".....######....######....."];
+const BH=BODY.length,BW=BODY[0].length;
+let cell=8;
+function layout(){
+  const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);
+  cell=Math.max(8,Math.floor(Math.min((H*0.92)/BH,(W*0.5)/BW)));F=cell*BH;CX=W/2;CY=H/2;
+  const x0=Math.round(CX-BW*cell/2),y0=Math.round(CY-BH*cell/2);dots=[];
+  for(let y=0;y<BH;y++)for(let x=0;x<BW;x++)if(BODY[y][x]==='#')dots.push({gx:x,gy:y,x:x0+x*cell+cell/2,y:y0+y*cell+cell/2,u:(x-BW/2)/BH,v:(y-BH/2)/BH,seed:Math.random()});
+  S.nodes.forEach(n=>{const d=dots[n.di%dots.length];if(d){n.x=d.x;n.y=d.y;}});
+}
+function pickNodes(){
+  const list=[];S.ints.forEach(k=>CONTENT[k].forEach((c,i)=>list.push({k,i,...c})));
+  // 멀리 떨어진 점을 고르는 방식으로 고르게 배치
+  const chosen=[];const inner=(d)=>[[-1,0],[1,0],[0,-1],[0,1]].every(([dx,dy])=>(BODY[d.gy+dy]||'')[d.gx+dx]==='#');let cand=dots.map((d,i)=>i).filter(i=>inner(dots[i]));if(cand.length<list.length)cand=dots.map((d,i)=>i);
+  let first=cand.reduce((a,b)=>dots[b].y<dots[a].y+F*0.06&&Math.abs(dots[b].u)<0.02?b:a,cand[0]);
+  first=cand[Math.floor(cand.length*0.18)];chosen.push(first);
+  while(chosen.length<list.length){let best=-1,bd=-1;for(const i of cand){if(chosen.includes(i))continue;let m=1e9;for(const j of chosen){const dx=dots[i].x-dots[j].x,dy=dots[i].y-dots[j].y;m=Math.min(m,dx*dx+dy*dy);}m*=0.8+0.4*dots[i].seed;if(m>bd){bd=m;best=i;}}chosen.push(best);}
+  // 위에서 아래 순으로 정렬해 연결선이 자연스럽게
+  chosen.sort((a,b)=>dots[a].y-dots[b].y);
+  S.nodes=list.map((c,i)=>({...c,di:chosen[i],x:dots[chosen[i]].x,y:dots[chosen[i]].y,progress:0,elapsed:0,done:false,got:[],doneT:0,label:i%4===0}));
+  // 연결 순서 (가까운 점 잇기)
+  const ord=[0],left=S.nodes.map((n,i)=>i).slice(1);while(left.length){const a=S.nodes[ord[ord.length-1]];let bi=0,bd=1e9;left.forEach((j,ix)=>{const b=S.nodes[j];const d=(a.x-b.x)**2+(a.y-b.y)**2;if(d<bd){bd=d;bi=ix;}});ord.push(left.splice(bi,1)[0]);}
+  S.order=ord;
+}
+function fitMLogo(){const L=$('#mLogo'),T=L.querySelector('.lt');let f=30;L.style.fontSize=f+'px';const room=L.clientWidth-28;while(T.offsetWidth>room&&f>16){f-=.5;L.style.fontSize=f+'px';}}
+function startMain(rec){
+  show('main');fitMLogo();S.words=[];S.log=[];
+  if(rec){S.ints=rec.ints.slice();S.gender=rec.gender;}
+  $('#who').innerHTML=`<b>${esc(S.id)}</b> · ${esc(S.gender)}`;
+  layout();pickNodes();$('#tot').textContent=S.nodes.length;
+  if(rec){ // 이전 기록 이어 붙이기
+    rec.nodes.forEach(o=>{const n=S.nodes.find(x=>x.k===o.k&&x.i===o.i);if(n){n.done=o.done;n.got=o.got||[];n.progress=o.progress||0;n.doneT=-1e9;}});
+    S.words=rec.words.slice();S.log=(rec.log||[]).slice();
+    $('#log').innerHTML=S.log.map(l=>`<li>${l}</li>`).join('');
+    addLog(`${S.name}님의 이전 기록을 불러왔습니다 · 읽어낸 정보 ${S.nodes.filter(n=>n.done).length}개`);
+    setTimeout(()=>toast(`> 다시 오셨네요, ${S.name}님. 이전 기록을 불러왔습니다`),600);
+  }else{addLog(`${S.name}님을 구성할 정보 ${S.nodes.length}개를 불러왔습니다`);addLog(`나의 코드 <b>${esc(S.id)}</b> · 다시 올 때 이 코드로 이어서 읽을 수 있어요`);setTimeout(()=>{toast(`나의 코드는 ${S.id} 입니다\n다시 올 때 이 코드를 입력하세요`,6000,true);},700);}
+  updateSide();saveRec();
+  genT0=performance.now();requestAnimationFrame(drawMain);
+}
+new ResizeObserver(()=>{if($('#main').classList.contains('on'))layout();}).observe(cv);
+
+function drawMain(now){
+  if(!$('#main').classList.contains('on'))return;
+  const t=(now-genT0)/1000;ctx.clearRect(0,0,W,H);
+  const grow=reduce?1:Math.min(1,t/1.6);
+  // 실루엣 칸 (네모 픽셀)
+  const g=2;
+  for(const d of dots){if(d.seed>grow)continue;const tw=reduce?.5:.5+.5*Math.sin(t*1.2+d.seed*20);ctx.fillStyle=`rgba(69,255,60,${.22+.16*tw})`;ctx.fillRect(d.x-cell/2,d.y-cell/2,cell-g,cell-g);}
+  if(t>1.2){
+    const nAlpha=Math.min(1,(t-1.2)/.6),ns=cell-g,h2=cell/2;
+    // 연결선
+    ctx.lineWidth=1;
+    for(let i=1;i<S.order.length;i++){const a=S.nodes[S.order[i-1]],b=S.nodes[S.order[i]];const both=a.done&&b.done;
+      ctx.strokeStyle=both?`rgba(69,255,60,${.9*nAlpha})`:`rgba(69,255,60,${.35*nAlpha})`;ctx.setLineDash(both?[]:[3,4]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+    ctx.setLineDash([]);
+    // 라벨(몇 개만)
+    S.nodes.forEach((n,i)=>{if(n.done||!(n.label||n===hover))return;drawLabel(n,i,nAlpha);});
+    // 노드: 빈 칸 = 외곽선 네모 / 읽어낸 칸 = 채워진 네모
+    S.nodes.forEach(n=>{
+      const x=Math.round(n.x-h2)+.5,y=Math.round(n.y-h2)+.5; // 몸 칸과 같은 자리·같은 크기
+      if(n.done){const ft=(now-n.doneT)/1000;
+        if(ft>=0&&ft<1.2&&!reduce){const e=ft*36;ctx.strokeStyle=`rgba(69,255,60,${1-ft/1.2})`;ctx.lineWidth=2;ctx.strokeRect(x-e,y-e,ns-1+e*2,ns-1+e*2);}
+        ctx.fillStyle=G;ctx.shadowColor=G;ctx.shadowBlur=14;ctx.fillRect(x-.5,y-.5,ns,ns);ctx.shadowBlur=0;return;}
+      const p=reduce?1:.7+.3*Math.sin(t*2.4+n.di);const hv=n===hover;
+      ctx.fillStyle='#000';ctx.fillRect(x-.5,y-.5,ns,ns);
+      if(n.progress>0){const ph=Math.round(ns*n.progress);ctx.fillStyle=`rgba(69,255,60,${.45*nAlpha})`;ctx.fillRect(x-.5,y-.5+ns-ph,ns,ph);}
+      ctx.strokeStyle=`rgba(${hv?'200,255,190':'69,255,60'},${Math.min(1,p+.2)*nAlpha})`;ctx.lineWidth=2;ctx.strokeRect(x+.5,y+.5,ns-2,ns-2);
+    });
+  }
+  requestAnimationFrame(drawMain);
+}
+function drawLabel(n,i,a){
+  const left=n.x<CX;const lx=left?CX-BW*cell*0.5-40:CX+BW*cell*0.5+40;const ly=n.y-14;
+  ctx.strokeStyle=`rgba(69,255,60,${.45*a})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(lx,ly);ctx.stroke();
+  ctx.fillStyle=`rgba(69,255,60,${a})`;ctx.fillRect(lx-2.5,ly-2.5,5,5);
+  ctx.font='12px "Nanum Gothic Coding", monospace';ctx.textAlign=left?'right':'left';ctx.textBaseline='middle';
+  const tx=lx+(left?-10:10),maxW=Math.max(140,Math.min(240,left?tx-20:W-tx-20));
+  const lines=[];let line='';for(const w of n.t.split(' ')){const tryL=line?line+' '+w:w;if(ctx.measureText(tryL).width>maxW&&line){lines.push(line);line=w;}else line=tryL;}if(line)lines.push(line);
+  ctx.fillStyle=`rgba(69,255,60,${a})`;lines.forEach((l,j)=>ctx.fillText(l,tx,ly+j*16));
+  ctx.fillStyle=`rgba(69,255,60,${.55*a})`;ctx.font='11px "Nanum Gothic Coding", monospace';ctx.fillText(`#${n.k}`,tx,ly+lines.length*16+2);
+}
+function nodeAt(x,y){let best=null,bd=Math.max(12,cell*1.2)**2;for(const n of S.nodes){const d=(n.x-x)**2+(n.y-y)**2;if(d<bd){bd=d;best=n;}}return best;}
+cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect();const n=nodeAt(e.clientX-r.left,e.clientY-r.top);hover=n&&!n.done?n:(n&&n.done?n:null);cv.style.cursor=n?'pointer':'default';});
+cv.addEventListener('mouseleave',()=>{hover=null;});
+cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();const n=nodeAt(e.clientX-r.left,e.clientY-r.top);if(!n)return;
+  if(n.done){toast(`> 이미 당신의 일부가 된 정보: ${n.t}`);return;}openInfo(n);});
+
+/* ===================== 5. 정보 열람 창 ===================== */
+let cur=null,lastT=0,raf=0;
+const RING_N=48;
+(function buildRing(){ // 네모 둘레를 따라 48칸 (왼쪽 위에서 시계 방향으로 채워짐)
+  const svg=$('#ring');let s='';const a=16,b=184,st=(b-a)/12,z=10;
+  for(let i=0;i<RING_N;i++){const side=Math.floor(i/12),j=i%12;let x,y;
+    if(side===0){x=a+j*st;y=a;}else if(side===1){x=b;y=a+j*st;}else if(side===2){x=b-j*st;y=b;}else{x=a;y=b-j*st;}
+    s+=`<rect x="${x-z/2}" y="${y-z/2}" width="${z}" height="${z}" fill="${G}" opacity=".18" data-i="${i}"/>`;}
+  s+=`<rect x="44" y="44" width="112" height="112" fill="none" stroke="rgba(69,255,60,.18)" stroke-dasharray="2 5"/>`;svg.innerHTML=s;})();
+const ringDots=[...document.querySelectorAll('#ring [data-i]')];
+let archMode=false;
+function openInfo(n,arch){
+  archMode=!!arch;$('#info').classList.toggle('ontop',archMode);cur=n;$('#iHead').textContent=`[ 정보 열람 ]  ${n.k} · 0${n.i+1}`;$('#iCat').textContent=`#${n.k}`;$('#iTitle').textContent=n.t;
+  const total=n.b.join(' ').match(/\[\[(.+?)\]\]/g)?.length||0;n.total=total;
+  $('#iTxt').innerHTML=n.b.map(p=>'<p>'+esc(p).replace(/\[\[(.+?)\]\]/g,(m,w)=>{const got=n.got.includes(w);return got?`<span class="mask got">${w}</span>`:`<span class="mask" data-w="${w}" role="button" tabindex="0">${'▒'.repeat(Math.max(2,w.length))}</span>`;})+'</p>').join('');
+  const tx=$('#iTxt');const sp=document.createElement('div');sp.className='endpad';sp.innerHTML='<p class="endmark">— 끝까지 읽었습니다 —</p>';tx.appendChild(sp);
+  tx.scrollTop=0;n.maxRatio=n.done?1:0;n.progress=n.done?1:0;updWc();
+  ringDots.forEach(c=>c.setAttribute('opacity','.18'));$('#iPct').textContent='0%';$('#iMsg').innerHTML='스크롤하면 한 글자씩 읽히고<br>읽은 만큼 네모가 채워집니다';if(archMode){$('#iMsg').innerHTML='아카이브에 남은 정보<br>다시 읽는 중';$('#iClose').textContent='아카이브로 돌아가기 ✕';}
+  $('#info').classList.add('on');sp.style.height='60px';tx.scrollTop=0;splitChars(tx);revealChars(archMode||n.done);lastT=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
+}
+function updWc(){$('#iWc').textContent=`가려진 단어 ${cur.got.length} / ${cur.total}`;}
+$('#iTxt').addEventListener('click',e=>{const m=e.target.closest('.mask[data-w]');if(m)collect(m);});
+$('#iTxt').addEventListener('keydown',e=>{if(e.key==='Enter'){const m=e.target.closest('.mask[data-w]');if(m)collect(m);}});
+function collect(m){const w=m.dataset.w;m.textContent=w;m.classList.add('got');m.removeAttribute('data-w');m.removeAttribute('role');m.removeAttribute('tabindex');
+  if(!cur.got.includes(w)){cur.got.push(w);S.words.push(w);updWc();updateSide();addLog(`단어 수집: <b>${esc(w)}</b>`);saveRec();}}
+// 스크롤로 내려간 만큼, 그 위치까지 한 글자씩 타이핑되듯 나타남 (가려진 단어는 한 덩어리)
+let units=[],tops=[],shownK=0,targetK=0,typeRAF=0;
+function splitChars(tx){
+  tx.querySelectorAll('p:not(.endmark)').forEach(p=>{
+    [...p.childNodes].forEach(nd=>{
+      if(nd.nodeType===3){const f=document.createDocumentFragment();for(const ch of nd.textContent){const sp=document.createElement('span');sp.className='u';sp.textContent=ch;f.appendChild(sp);}p.replaceChild(f,nd);}
+      else nd.classList.add('u');
+    });
+  });
+  units=[...tx.querySelectorAll('.u')];shownK=0;targetK=0;tops=[];
+}
+// 스크롤(휠·트랙패드·방향키·터치) 입력이 글 상자를 내리는 대신, 글자를 한 글자씩 앞으로 넘김
+const CHARS_PER_PX=0.06; // 휠 100 → 약 6글자
+let charAcc=0;
+function setShown(k){k=Math.max(0,Math.min(units.length,Math.floor(k)));if(k<=shownK)return;
+  if(shownK>0)units[shownK-1].classList.remove('last');
+  for(let i=shownK;i<k;i++)units[i].classList.add('on');shownK=k;if(k<units.length)units[k-1]?.classList.add('last');
+  // 쓰고 있는 줄이 글 상자 가운데쯤에 오도록 자동으로 따라감
+  const tx=$('#iTxt'),u=units[k-1];if(u){const y=u.offsetTop-tx.offsetTop;const want=y-tx.clientHeight*0.45;if(want>tx.scrollTop)tx.scrollTo({top:want,behavior:'smooth'});}
+  if(k>=units.length)tx.querySelector('.endpad')?.classList.add('on');
+}
+const MAX_CPS=24; // 1초에 최대 24글자 — 아무리 빨리 굴려도 이 이상 빨라지지 않음
+let budget=0,lastAdv=0;
+function advance(px){if(!cur||cur.done||archMode||px<=0)return;
+  const now=performance.now();budget=Math.min(3,budget+(lastAdv?(now-lastAdv)/1000*MAX_CPS:1));lastAdv=now;
+  charAcc=Math.min(3,charAcc+Math.min(px,120)*CHARS_PER_PX); // 빠른 휠은 쌓이지 않고 버려짐
+  const n=Math.min(Math.floor(charAcc),Math.floor(budget));if(n>0){charAcc-=n;budget-=n;setShown(shownK+n);}}
+function updateTarget(all){if(all)setShown(units.length);}
+function revealChars(all){charAcc=0;budget=0;lastAdv=0;if(all){units.forEach(u=>u.classList.add('on'));shownK=units.length;$('#iTxt .endpad')?.classList.add('on');return;}setShown(1);}
+
+const reading=()=>cur&&!cur.done&&!archMode;
+$('#info').addEventListener('wheel',e=>{if(!reading())return;e.preventDefault();advance(e.deltaMode===1?e.deltaY*32:e.deltaY);},{passive:false});
+let tY=null;$('#iTxt').addEventListener('touchstart',e=>{tY=e.touches[0].clientY;},{passive:true});
+$('#iTxt').addEventListener('touchmove',e=>{if(!reading())return;e.preventDefault();const y=e.touches[0].clientY;advance((tY-y)*1.5);tY=y;},{passive:false});
+addEventListener('keydown',e=>{if(!reading()||!$('#info').classList.contains('on'))return;if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();advance(e.key===' '||e.key==='PageDown'?300:60);}});
+function ratio(){return units.length?shownK/units.length:0;}
+function tick(now){
+  if(!cur||!$('#info').classList.contains('on'))return;
+  const dt=Math.min(.1,(now-lastT)/1000);lastT=now;cur.elapsed+=dt;
+  const r=ratio();cur.maxRatio=Math.max(cur.maxRatio,r);cur.progress=Math.max(cur.progress,cur.maxRatio);
+  const show=cur.done?1:r; // 네모는 읽어 넘긴 글자 비율을 따라감
+  const lit=Math.round(show*RING_N);ringDots.forEach((c,i)=>c.setAttribute('opacity',i<lit?'1':'.18'));
+  $('#iPct').textContent=cur.done?'읽어냄':Math.round(show*100)+'%';
+  if(cur.maxRatio>=0.995&&!cur.done)complete(cur);
+  raf=requestAnimationFrame(tick);
+}
+function complete(n){ // 창은 열어 둔 채로 완료 표시만
+  setTimeout(saveRec,0);
+  n.done=true;n.doneT=performance.now()+1e9;updateSide();addLog(`읽어냄: <b>${esc(n.t)}</b>`);
+  $('#iMsg').innerHTML='끝까지 읽어냈습니다<br>창을 닫으면 당신의 일부가 됩니다';$('#info').classList.add('done');$('#iClose').textContent='닫고 돌아가기 ✕';
+}
+function closeInfo(){setTimeout(saveRec,0);$('#info').classList.remove('on','done','ontop');$('#iClose').textContent='닫기 ✕';
+  if(archMode){archMode=false;cur=null;return;}
+  if(cur){if(cur.done){cur.doneT=performance.now();toast('> 정보가 당신의 일부가 되었습니다');}
+    else if(cur.progress>0)addLog(`읽다 멈춤 (${Math.floor(cur.progress*100)}%): ${esc(cur.t)}`);}
+  cur=null;}
+$('#iClose').addEventListener('click',closeInfo);
+$('#archSide').addEventListener('click',e=>{const b=e.target.closest('button[data-ni]');if(b)openInfo(S.nodes[+b.dataset.ni],true);});
+
+/* ===================== 사이드 패널 ===================== */
+function readCount(){return S.nodes.filter(n=>n.done).length;}
+function updateSide(){$('#cnt').textContent=readCount();
+  const done=S.nodes.map((n,i)=>({n,i})).filter(o=>o.n.done);$('#archN').textContent=done.length;
+  $('#archSide').innerHTML=done.length?done.map(({n,i})=>`<li><button type="button" data-ni="${i}"><i></i><span>${esc(n.t)}<small>#${esc(n.k)}</small></span></button></li>`).join(''):'<li class="none">끝까지 읽어낸 정보가 여기에 쌓여요</li>';
+  $('#words').innerHTML=S.words.length?S.words.map(w=>`<span>${esc(w)}</span>`).join(''):'<span class="none">아직 없음</span>';
+  $('#hint').textContent=readCount()?`> 읽어낸 정보 ${readCount()}개 · 언제든지 분석 리포트를 받을 수 있습니다`:'> 빈 칸을 클릭해 정보를 열어 보세요';}
+function addLog(h){const d=new Date();const ts=[d.getHours(),d.getMinutes(),d.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');S.log.unshift(`[${ts}] ${h}`);$('#log').innerHTML=S.log.slice(0,10).map(l=>`<li>${l}</li>`).join('');}
+
+/* ===================== 6. 리포트 ===================== */
+$('#repBtn').addEventListener('click',()=>{const n=readCount();
+  $('#cMsg').innerHTML=n?`&gt; 지금까지 읽어낸 정보 <b>${n}개</b>로 당신을 분석합니다.<br>&gt; 더 많이 읽어낼수록, 더 구체적인 당신의 캐릭터가 만들어집니다.`:`&gt; 아직 읽어낸 정보가 없습니다.<br>&gt; 지금 분석하면 어떠한 캐릭터로도 분석되지 않습니다.`;
+  $('#confirm').classList.add('on');$('#cGo').focus();});
+$('#cBack').addEventListener('click',()=>$('#confirm').classList.remove('on'));
+$('#cGo').addEventListener('click',()=>{$('#confirm').classList.remove('on');openReport();});
+
+function analyze(){
+  const read=S.nodes.filter(n=>n.done);const n=read.length;
+  const cnt={};read.forEach(r=>cnt[r.k]=(cnt[r.k]||0)+1);
+  const rank=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||S.ints.indexOf(a)-S.ints.indexOf(b));
+  const stage=n===0?0:n===1?1:n<=3?2:n<=5?3:4;
+  const top=rank[0],sec=rank[1]||rank[0],thr=rank[2]||rank[1]||rank[0];
+  return{n,read,cnt,rank,stage,top,sec,thr};
+}
+function openReport(){
+  saveRec();const A=analyze();$('#report').classList.add('on');
+  const rn=$('#rName'),rs=$('#rStage'),ri=$('#rInfo');
+  const scale=Math.max(4,Math.min(8,Math.floor((innerHeight-260)/GH)));$('#rWord').textContent='Archivarius';$('#rGloss').textContent='[ 사용자 분석 리포트 ]';const chc=$('#ch');chc.width=GW*scale;chc.height=GH*scale;chc.style.width=chc.width+'px';chc.style.height=chc.height+'px';fitReport();
+  const cx=chc.getContext('2d');cx.fillStyle='#000';cx.fillRect(0,0,chc.width,chc.height);
+  rn.textContent='';rs.textContent='';ri.innerHTML=`<div class="analyzing">&gt; ANALYZING<span class="cur"></span></div><p class="line" style="color:var(--g2)">읽어낸 정보를 바탕으로 당신을 그리고 있습니다…</p>`;
+  const finish=()=>{
+    const grid=A.stage?buildCharacter(A):null;
+    const rows=GH;let r=0;const T=performance.now();
+    const anim=now=>{r=reduce?rows:Math.min(rows,Math.floor((now-T)/14));paintChar(cx,grid,scale,r,A.stage);if(r<rows)requestAnimationFrame(anim);};
+    requestAnimationFrame(anim);
+    if(!A.stage){rn.textContent='NO DATA';rs.textContent='분석할 수 없음';}
+    else{rn.textContent=`${S.name} ${A.stage===1?'THE UNKNOWN':TITLE[A.top]}`;rs.textContent=`구체화 단계 ${A.stage} / 4 · ${['','윤곽','얼굴','머리와 옷','장신구와 아이템'][A.stage]}까지 그려짐`;}
+    ri.innerHTML=reportHTML(A);bindReport();
+    $('#rLogo').style.width=$('.card .frame').offsetWidth+'px';fitLogo();
+    if(A.stage>=2&&HOMO[A.top])swapWord(HOMO[A.top][0],`[ 사용자 분석 리포트 ]  Homo ${HOMO[A.top][0]} — ${HOMO[A.top][1]}`);
+  };
+  setTimeout(finish,reduce?0:1600);
+}
+// 캐릭터 상자를 화면 높이에 꽉 차게 키우고, 오른쪽 정보 상자들도 같은 높이로 맞춤
+function fitReport(){const rb=$('.rep-b'),chc=$('#ch'),card=$('.card');if(!rb.clientHeight)return;
+  const extra=card.offsetHeight-chc.offsetHeight,cs=getComputedStyle(rb);
+  const avail=rb.clientHeight-parseFloat(cs.paddingTop)-extra-2;
+  const h=Math.max(GH*4,Math.floor(avail));chc.style.height=h+'px';chc.style.width=Math.round(h*GW/GH)+'px';
+  $('#rInfo').style.height=chc.parentElement.offsetHeight+'px';$('#rLogo').style.width=chc.parentElement.offsetWidth+'px';fitLogo();}
+addEventListener('resize',()=>{if($('#report').classList.contains('on'))fitReport();});
+function fitLogo(){const L=$('#rLogo'),T=L.querySelector('.lt');let f=44;L.style.fontSize=f+'px';const room=L.clientWidth-44;while(T.offsetWidth>room&&f>22){f-=1;L.style.fontSize=f+'px';}}
+function swapWord(word,gloss){ // Archivarius → 관심사 단어로 지우고 다시 타이핑
+  const el=$('#rWord');let t=el.textContent;
+  if(reduce){el.textContent=word;$('#rGloss').textContent=gloss;return;}
+  const del=()=>{if(t.length){t=t.slice(0,-1);el.textContent=t;setTimeout(del,45);}else typ(0);};
+  const typ=i=>{el.textContent=word.slice(0,i);fitLogo();if(i<word.length)setTimeout(()=>typ(i+1),75);else $('#rGloss').textContent=gloss;};
+  setTimeout(del,500);
+}
+function reportHTML(A){
+  const info=`<div class="box frame grid-bg"><i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i><h3>[ 사용자 정보 ]</h3>
+    <div class="kv"><span>//이름</span><div>${esc(S.name)}</div><span>//코드</span><div>${esc(S.id||'—')}</div><span>//성별</span><div>${esc(S.gender)}</div><span>//관심사</span><div>${S.ints.map(esc).join(', ')}</div></div></div>`;
+  const nums=`<div class="big"><div><b>${A.n}</b><span>읽어낸 정보</span></div><div><b>${S.nodes.length-A.n}</b><span>아직 읽지 않은 정보</span></div><div><b>${S.words.length}</b><span>수집한 단어</span></div></div>`;
+  let line;
+  if(!A.stage)line=`&gt; 읽어낸 정보가 없어, 어떠한 캐릭터로도 분석되지 않았습니다.<br>&gt; 빈 칸 하나를 끝까지 읽어내면 당신이 그려지기 시작합니다.`;
+  else if(A.stage===1)line=`&gt; ${esc(S.name)}님의 윤곽이 처음 나타났습니다.<br>&gt; 아직은 누구인지 알아볼 수 없습니다. 조금 더 읽어내면 얼굴이 생깁니다.`;
+  else{const ks=A.rank.map(k=>`${k}(${A.cnt[k]})`).join(', ');
+    line=`&gt; ${esc(S.name)}님은 <b>${A.top}</b> 정보를 가장 많이 읽어낸 사람입니다.<br>&gt; 당신을 구성하는 정보: ${ks}`+(A.stage<4?`<br>&gt; 더 읽어낼수록 ${A.stage===2?'머리 모양과 옷이':'관심사의 물건과 장신구가'} 생깁니다.`:`<br>&gt; ${A.sec}${A.thr!==A.sec?'와 '+A.thr:''}의 흔적이 당신의 모습에 함께 새겨졌습니다.`);}
+  const words=S.words.length?`<div class="words">${S.words.map(w=>`<span>${esc(w)}</span>`).join('')}</div>`:'<p class="line" style="font-size:13px;color:var(--g3)">수집한 단어가 없습니다</p>';
+  const F4='<i class="cn tl"></i><i class="cn tr"></i><i class="cn bl"></i><i class="cn br"></i>';
+  const bars=S.ints.map(k=>{const tot=S.nodes.filter(n=>n.k===k).length,c=A.cnt[k]||0;return `<div class="ibar"><span>${esc(k)}</span><span class="cells">${Array.from({length:tot},(_,i)=>`<i class="${i<c?'on':''}"></i>`).join('')}</span><em>${c}/${tot}</em></div>`;}).join('');
+  const readL=S.nodes.map((n,i)=>({n,i})).filter(o=>o.n.done),unread=S.nodes.filter(n=>!n.done);
+  const arch=`<ul class="arch">${readL.map(({n,i})=>`<li><button type="button" data-ni="${i}"><i></i><span>${esc(n.t)}<small>#${esc(n.k)} · 수집 단어 ${n.got.length}/${(n.b.join(' ').match(/\[\[/g)||[]).length}</small></span></button></li>`).join('')}${unread.map(n=>`<li class="lock"><i></i><span>${esc(n.t)}</span></li>`).join('')}</ul>`;
+  const mid=`<div class="rcol rmid">`+info+`<div class="box frame">${F4}<h3>[ 분석 결과 ]</h3>${nums}<p class="line">${line}</p></div>`+
+    `<div class="box frame">${F4}<h3>[ 관심사별 읽어낸 정보 ]</h3>${bars}</div>`+
+    `<div class="box frame">${F4}<h3>[ 수집한 단어 ]</h3>${words}</div>`+`</div>`;
+  const right=`<div class="rcol rarch"><div class="box frame">${F4}<h3>[ 나의 아카이브 ]  ${A.n} / ${S.nodes.length}</h3><p>끝까지 읽어낸 정보만 이곳에 남습니다. 클릭하면 다시 볼 수 있어요.</p>${arch}</div></div>`;
+  return mid+right;
+}
+function bindReport(){
+  document.querySelectorAll('.arch button[data-ni]').forEach(b=>b.addEventListener('click',()=>openInfo(S.nodes[+b.dataset.ni],true)));
+}
+$('#rSave').addEventListener('click',()=>toast('> 리포트가 저장되었습니다. 다시 열어 보게 될까요?'));
+$('#rBack').addEventListener('click',()=>$('#report').classList.remove('on'));
+$('#rHome').addEventListener('click',()=>{$('#report').classList.remove('on');S.nodes=[];$('#form').reset();$('#recHint').textContent='';iChips.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed','false'));showTitle();});
+
+/* ===================== 픽셀 캐릭터 (40×48) ===================== */
+// 0 검정, 1 그린, 2 어두운 그린(디더), 3 옐로
+const SPR={
+ 디자인:['......##','.....###','....###.','...###..','..###...','.###....','##......','#.......'],
+ 독서:['........','.######.','.#2##2#.','.#2##2#.','.#2##2#.','.#2##2#.','.######.','........'],
+ 운동:['........','#......#','##....##','########','##....##','#......#','........','........'],
+ 요리:['......#.','.....#..','....#...','...#....','.###....','#####...','#####...','.###....'],
+ 여행:['..####..','..#..#..','########','#2#22#2#','#2#22#2#','#2#22#2#','########','.#....#.'],
+ 음악:['....##..','....###.','....#.##','....#...','..###...','.####...','.####...','..##....'],
+ 재테크:['..####..','.#2##2#.','..####..','.######.','..####..','.######.','..####..','........'],
+ 자기계발:['########','#222222#','#.#.##.#','#222222#','#.#.##.#','#222222#','#.#.##.#','########']
+};
+/* 파츠: 직접 그린 무채색 일러스트(1440×3600, 대칭) → 30px = 1칸
+   . 빈칸 / 0(검정)~5(흰색) 명도 단계 → 초록 명도로 표현  [x0, y0, rows] */
+const PARTS={"신발2":[9,105,[".....222222........222222.....","....22222222......22222222....","...3333322222....2222233333...",".222223333322....223333322222.",".222222222332....233222222222.","2222222222232....2322222222222","2222222222222....2222222222222","2222222222222....2222222222222","2222222222222....2222222222222","2222222222222....2222222222222",".222222222222....222222222222.","..2222222222......2222222222..",".....222222........222222....."]],"악세서리-귀걸이":[5,22,["00..................................00","0....................................0","0.0................................0.0","000................................000",".0..................................0."]],"여자-치마":[12,63,["..11111111111111111111..","..11111111111111111111..","..11111111111111111111..","..11111111111111111111..","..11111111111111111111..","..11111111111111111111..",".1111111111111111111111.",".1111111111111111111111.",".1111111111111111111111.",".1111111111111111111111.",".1111111111111111111111.",".1111111111111111111111.",".1111111111111111111111.","111111111111111111111111","111111111111111111111111","111111111111111111111111","111111111111111111111111","111111111111111111111111",".1111111111111111111111.","....1111111111111111....","..........1111.........."]],"바지":[11,64,["...111..............111...","...11111111122111111111...","..1111111111221111111111..","..1111222221221222221111..","..1111111211111121111111..","..1111121111111111211111..","..1111112111111112111111..","..1111211111111111121111..",".111121211111111112121111.",".112112111111111111211211.",".112211111111111111112211.",".111111111112211111111111.",".111111111111111111111111.",".111111111111111111111111.",".111111111111111111111111.",".111111111111111111111111.",".111111111111111111111111.",".111111111111111111111111.",".111111111111111111111111.","11111111111111111111111111","11111111111111111111111111","11111111111111111111111111","11111111111111111111111111","11111111111111111111111111","111111111111..111111111111","111111111111..111111111111","111111111111..111111111111","111111111111..111111111111","111111111111..111111111111","111111111111..111111111111",".11111111111..11111111111.",".11111111111..11111111111.",".11111111111..11111111111.",".11111111111..11111111111.",".11111111111..11111111111.",".11111111111..11111111111.",".1111111111....1111111111.","..111111111....111111111..","..111111111....111111111..","..111111111....111111111..","..111111111....111111111.."]],"양말":[10,97,["....55555555....55555555....","....55555555....55555555....","....55555555....55555555....","....55555555....55555555....","....55555555....55555555....","....55555555....55555555....","...555555555....555555555...","...555555555....555555555...","...555555555....555555555...","...555555555....555555555...","..5555555555....5555555555..",".55555555555....55555555555.",".55555555555....55555555555.","555555555555....555555555555","555555555555....555555555555","555555555555....555555555555","555555555555....555555555555","55555555555......55555555555","55555555555......55555555555",".5555555555......5555555555."]],"눈2":[17,17,["00000....00000","50000....00005","50000....00005","50000....00005"]],"여자- 머리":[9,5,["...........00000000...........","........00000000000000........","......000000000000000000......","....0000000000000000000000....","...000000000000000000000000...","..00000000000000000000000000..",".0000000000000000000000000000.",".0000000000000000000000000000.","000000000000000000000000000000","0000000................0000000","00000....................00000","0000......................0000","000........................000","00..........................00","00..........................00","0............................0","0............................0","..............................","..............................","0............................0","0............................0","00..........................00","000........................000","0000......................0000","000000..................000000","00000000..............00000000","00000000000........00000000000","000000000000......000000000000",".....0000000......0000000.....","...........0......0..........."]],"몸통":[3,5,["...................3333...................","...............333333333333...............","............333333333333333333............","...........33333333333333333333...........","..........3333333333333333333333..........","........33333333333333333333333333........","........33333333333333333333333333........",".......3333333333333333333333333333.......","......333333333333333333333333333333......","..33333333333333333333333333333333333333..",".3333333333333333333333333333333333333333.","333333333333333333333333333333333333333333","333333333333333333333333333333333333333333","333333333333333333333333333333333333333333","333333333333333333333333333333333333333333","333333333333333333333333333333333333333333","333333333333333333333333333333333333333333","333333333333333333333333333333333333333333",".3333333333333333333333333333333333333333.",".......3333333333333333333333333333.......",".......3333333333333333333333333333.......","........33333333333333333333333333........",".........333333333333333333333333.........","..........3333333333333333333333..........","...........33333333333333333333...........",".............3333333333333333.............","................3333333333................","..................333333..................","..................333333..................","..................333333..................",".................33333333.................","..............33333333333333..............",".............3333333333333333.............","............333333333333333333............","...........33333333333333333333...........","...........33333333333333333333...........","..........3333333333333333333333..........","..........3333333333333333333333..........","..........3333333333333333333333..........",".........333333333333333333333333.........",".........333333333333333333333333.........",".........333333333333333333333333.........","........33333333333333333333333333........","........33333333333333333333333333........",".......3333333333333333333333333333.......",".......3333333333333333333333333333.......",".......3333333333333333333333333333.......",".......3333333333333333333333333333.......","......333333.3333333333333333.333333......","......333333.3333333333333333.333333......","......33333..3333333333333333..33333......",".....333333..3333333333333333..333333.....",".....33333...3333333333333333...33333.....",".....33333...3333333333333333...33333.....","....33333....3333333333333333....33333....","....33333...333333333333333333...33333....","...33333....333333333333333333....33333...","...33333....333333333333333333....33333...","..333333....333333333333333333....333333..",".3333333....333333333333333333....3333333.",".3333333...33333333333333333333...3333333.","33333.333..33333333333333333333..333.33333","3333..33...33333333333333333333...33..3333",".33........33333333333333333333........33.","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........33333333333333333333...........","...........333333333..333333333...........","...........333333333..333333333...........","...........333333333..333333333...........","...........333333333..333333333...........","...........333333333..333333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........33333333....33333333...........","...........3333333......3333333...........","...........3333333......3333333...........","...........3333333......3333333...........","...........3333333......3333333...........","...........3333333......3333333...........","...........3333333......3333333...........","..........33333333......33333333..........",".........333333333......333333333.........","........33333333333....33333333333........",".......333333333333....333333333333.......",".......333333333333....333333333333.......",".......333333333333....333333333333.......",".......333333333333....333333333333.......",".......33333333333......33333333333.......",".......33333333333......33333333333.......",".........333333333......333333333........."]],"악세서리-헤드셋":[2,6,["...................555555...................","...............55555555555555...............",".............5555..........5555.............","............555..............555............","..........555..................555..........",".........55......................55.........","........55........................55........",".....5555..........................5555.....","...55555............................55555...",".5455555............................5555545.",".5545555............................5555455.",".5545555............................5555455.","55545555............................55554555","55545555............................55554555","55545555............................55554555","55545555............................55554555",".545555..............................555545.",".545555..............................555545.","...5555..............................5555...","....555..............................555...."]],"신발":[10,106,["...1....................1...","..1111111111....1111111111..",".11111111111....11111111111.","111111111111....111111111111","111111111111....111111111111","211111111111....111111111112","221111111111....111111111122","222211111121....121111112222","222222222221....122222222222","22222222222......22222222222",".1222222221......1222222221."]],"상의":[8,35,["...........22......22...........","........2222222..2222222........",".......222222222222222222.......","......22222222222222222222......","......22222222222222222222......","......22222222222222222222......",".....2222222222222222222222.....",".....2222222222222222222222.....","....222222222222222222222222....","....222222222222222222222222....","....222222222222222222222222....","...22222222222222222222222222...","...22222222222222222222222222...","...22222222222222222222222222...","..2222222222222222222222222222..","..2222222222222222222222222222..","..2222222222222222222222222222..",".222222222222222222222222222222.",".222222222222222222222222222222.",".222222222222222222222222222222.","22222222222222222222222222222222","222222.222222222222222222.222222","222222.222222222222222222.222222","22222..222222222222222222..22222",".2222..222222222222222222..2222.","....2..222222222222222222..2....","......22222222222222222222......","......22222222222222222222......",".......222222222222222222.......","...........2222222222..........."]],"상의2":[8,35,["...........555....555...........",".........54555555555545.........",".......555545555555545555.......","......55555545422454555555......","......55555554311345555555......",".....5555555553113555555555.....",".....5555555554114555555555.....","....555555555531135555555555....","....555555555511115555555555....","....555555555411114555555555....","...55555555552111125555555555...","...55555555551111115555555555...","..5555555555511111155555555555..","..5555555555521111255555555555..","..5555555555541111455555555555..","..5555555555553113555555555555..",".555555555555553355555555555555.",".555555555555555555555555555555.","55555555555555555555555555555555",".555555555555555555555555555555.","..5555555555555555555555555555..","...55555555555555555555555555...",".....5555555555555555555555.....","......55555555555555555555......","......55555555555555555555......","......55555555555555555555......",".....5555555555555555555555.....","......55555555555555555555......",".........55555555555555........."]],"악세서리-안경":[15,18,[".000.000..000.000.","0.......00.......0","0.......00.......0","0.......00.......0",".00....0..0....00.","...000......000..."]],"눈":[17,17,["00000....00000","50000....00005","50000....00005","50000....00005","50000....00005","5000......0005"]],"남자- 머리":[9,5,["............000000............","........00000000000000........","......000000000000000000......","....0000000000000000000000....","...000000000000000000000000...","..00000000000000000000000000..",".0000000000000000000000000000.",".0000000000000000000000000000.","000000000000000000000000000000","00000000..............00000000","00000....................00000","000........................000","00..........................00","0............................0"]],"아이템_독서":[4,5,["222..............222","44332222.2.222233445","55555443323344555555","55555555535555555555","55555555535555555555","54333334535533333355","55555555535555555555","55555555535555555555","54333334535533333355","55555555535555555555","55555555535555555555","54333334535533333455","54444445535544444455","55555555535555555555","55555555535555555555","44555555535555555443","2223334553554433222.",".....222223222......"]],"아이템_디자인":[11,1,[".555.","55555","45555","22222","33333","33333","33333","33333","33333","33333","33333","33333","33333","33333","33333","33333","33333","33333","33333",".4444",".444.",".444.","..2..","..2.."]],"아이템_여행":[4,4,[".....222222222.....",".....222222222.....",".....22......2.....",".....22......2.....",".34532333333323453.","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533","3345333333333334533",".33433333333333432.",".222...........222.",".22.............22."]],"아이템_요리":[2,7,["..........222..........","..........222..........",".....3333333333333.....","..3333333333333333333..","...333333333333333333..","...22233333333333222...","33322222222222222222333","33322222222222222222333","...23555555555555532...","...22222222222222222...","...22222222222222222...","...22222222222222222...","...22222222222222222...","...22222222222222222..."]],"아이템_운동":[3,8,["...222.........222....","222222.........222222.","222222.........2222222","222222.........2222222","2222223333333332222222","2222223333333332222222","2222223333333332222222","222222.........2222222","222222.........2222222","222222.........2222222","...222.........222....","...222..........22...."]],"아이템_음악":[5,1,[".......2222......",".......2222......",".......222.......",".......222.......",".......222.......",".......222.......",".......222.......",".......222.......",".......222.......",".......222.......","....3333223333...","..3333332233333..","..3333332233333..","..3333332233333..","...333333333333..","..3333333333333..",".333333333333333.","33333332223333333","33333332222333333","33333333333333333","33333333333333333",".344444444444443.","..3333333333333..","...33333333333...",".......333......."]],"아이템_자기계발":[5,3,[".....2222222.....","33333222222233333","33333222222233333","33333333333333333","33333333333333333","33333333333333333","33544555555544543","33433333333333433","33333333333333333","33333333333333333","33443333333333433","33543444444444543","33333333333333333","33333333333333333","33333333333333333","33543444444444543","33443333333333433","33333333333333333","33333333333333333","33333333333333333","33333333333333333",".3333333333333333"]],"아이템_재테크":[6,4,["......555......",".5555555555555.","555555555555555","345555555555553","223334444433322","222222222222222","222222222222222","455555555555554","555555555555555","234455555554433","222222333222222","222222222222222","455555555555554","555555555555555","234455555554433","222222333222222","222222222222222","222222222222222","...222222222..."]],"아이템_연애":[5,6,["...222.....222...","..222222..222222.",".2233222222233222","22355322222255322","22355322222255322","22233222222233222","22222222222222222",".2222222222222222","..22222222222222.","...222222222222..","...22222222222...","....222222222....",".....2222222.....","......22222......",".......2222......","........22.......","........2........"]],"아이템_뷰티":[9,6,["....2....","...222...","...222...","..22222..","..222222.",".5555555.",".55555555",".55555555",".55555555","333333333","333333333","333333333","555555555","333333333","333333333","333333333","333333333","333333333","333333333"]],"아이템_패션":[4,3,[".........22.........","........2.2.........","........222.........",".........22.........",".........2..........",".........2..........","........222.........",".......22.22........","......22...222......","....222......22.....","...22.........22....","..22...........22...",".22.............222.","22...............222","22222222222222222222"]],"아이템_반려동물":[5,6,[".....22....2.....","....2222..222....","....2222.2222....","....2222.2222....",".22.222...222.222","2222..........222","2222..........222","222...........222",".2..2222..222..2.","...22222.22222...","...222222222222..","...222222222222..","...222222222222..","...22222.22222...","....2222..2222..."]]};
+const GW=84,GH=120,FX=18,IX=56,IY=86; // 캐릭터를 캔버스 가운데에 (몸 중심 = 24칸 → 18+24 = 42 = 84/2)
+const THIN=new Set(['눈','눈2','악세서리-귀걸이','악세서리-안경']);
+const SHADE=[0,1,2,3,4,5].map(i=>{const l=.10+.62*i/5;const q=l<.5?l*2:1,p=2*l-q;const f=t=>{t=(t+1)%1;return t<1/6?p+(q-p)*6*t:t<.5?q:t<2/3?p+(q-p)*(2/3-t)*6:p;};const h=117/360;return `rgb(${Math.round(f(h+1/3)*255)},${Math.round(f(h)*255)},${Math.round(f(h-1/3)*255)})`;});
+// 관심사 → 모습  (1위: 눈·옷·신발 / 2위: 장신구 / 3위: 아이템)
+const LOOK={
+  디자인:{eye:'눈2',top:'상의',skirt:true,shoe:'신발2',acc:'악세서리-귀걸이'},
+  독서:{eye:'눈',top:'상의2',skirt:true,shoe:'신발',acc:'악세서리-안경'},
+  운동:{eye:'눈',top:'상의',skirt:false,shoe:'신발2',socks:true,acc:'악세서리-헤드셋',bright:1},
+  요리:{eye:'눈2',top:'상의2',skirt:true,shoe:'신발',acc:'악세서리-귀걸이'},
+  여행:{eye:'눈',top:'상의',skirt:false,shoe:'신발',socks:true,acc:'악세서리-헤드셋',bright:1},
+  음악:{eye:'눈2',top:'상의',skirt:true,shoe:'신발2',acc:'악세서리-헤드셋'},
+  재테크:{eye:'눈',top:'상의2',skirt:false,shoe:'신발',acc:'악세서리-안경'},
+  자기계발:{eye:'눈2',top:'상의2',skirt:false,shoe:'신발2',acc:'악세서리-안경'},
+  연애:{eye:'눈2',top:'상의',skirt:true,shoe:'신발2',acc:'악세서리-귀걸이',bright:1},
+  뷰티:{eye:'눈2',top:'상의2',skirt:true,shoe:'신발2',acc:'악세서리-귀걸이',bright:1},
+  패션:{eye:'눈',top:'상의2',skirt:true,shoe:'신발2',socks:true,acc:'악세서리-안경',bright:1},
+  반려동물:{eye:'눈',top:'상의',skirt:false,shoe:'신발',socks:true,acc:'악세서리-헤드셋'}
+};
+const ORDER=['몸통','양말','바지','여자-치마','신발','신발2','상의','상의2','눈','눈2','남자- 머리','여자- 머리','악세서리-귀걸이','악세서리-안경','악세서리-헤드셋'];
+function charParts(A){
+  const L=LOOK[A.top]||LOOK.디자인,fem=S.gender==='여성',p=['몸통'];
+  if(A.stage>=2)p.push(L.eye);
+  if(A.stage>=3){p.push(fem?'여자- 머리':'남자- 머리',L.top,L.shoe,(fem&&L.skirt)?'여자-치마':'바지');if(L.socks)p.push('양말');}
+  if(A.stage>=4)p.push((LOOK[A.sec]||L).acc);
+  return ORDER.filter(k=>p.includes(k));
+}
+function buildCharacter(A){
+  const parts=charParts(A),L=LOOK[A.top]||{};
+  const top=Array.from({length:GH},()=>Array(GW).fill(-1)),lv=Array.from({length:GH},()=>Array(GW).fill(0));
+  const put=(k,i,dx,dy,f)=>{const[x0,y0,rows]=PARTS[k];rows.forEach((row,y)=>{for(let x=0;x<row.length;x++){const c=row[x];if(c==='.')continue;const X=dx+x0+x,Y=dy+y0+y;if(X>=GW||Y>=GH)continue;lv[Y][X]=f(+c,top[Y][X]>=0);top[Y][X]=i;}});};
+  parts.forEach((k,i)=>put(k,i,FX,0,(v,under)=>{
+    if(THIN.has(k)&&v===0&&!under)return 2;            // 배경 위 작은 검정 파츠는 중간 밝기
+    if(k.includes('머리'))return Math.max(v,1);         // 머리카락은 배경과 구분되게 한 단계 밝게
+    if(L.bright&&!['몸통','눈','눈2'].includes(k))return Math.min(5,v+L.bright); // 활발한 관심사는 옷을 더 밝게
+    return v;}));
+  if(A.stage>=4){parts.push('아이템_'+A.thr);put('아이템_'+A.thr,parts.length-1,IX,IY,v=>v);}
+  return{parts,top,lv,stage:A.stage,item:A.stage>=4?A.thr:null};
+}
+function paintChar(c,g,s,rows,stage){
+  const W=GW,H=GH;c.fillStyle='#000';c.fillRect(0,0,W*s,H*s);
+  if(!g){ // 분석 불가
+    c.strokeStyle='rgba(69,255,60,.18)';c.lineWidth=1;for(let x=0;x<=W;x+=6){c.beginPath();c.moveTo(x*s+.5,0);c.lineTo(x*s+.5,H*s);c.stroke();}for(let y=0;y<=H;y+=6){c.beginPath();c.moveTo(0,y*s+.5);c.lineTo(W*s,y*s+.5);c.stroke();}
+    c.fillStyle=G;c.font=`${Math.round(s*7)}px VT323, monospace`;c.textAlign='center';c.textBaseline='middle';c.fillText('NO DATA',W*s/2,H*s/2-s*4);
+    c.font=`${Math.max(12,Math.round(s*2.6))}px "Nanum Gothic Coding", monospace`;c.fillStyle='rgba(69,255,60,.6)';c.fillText('그릴 수 있는 정보가 없습니다',W*s/2,H*s/2+s*5);return;}
+  const{top,lv}=g,d=s>4?1:0;
+  const px=(x,y,col)=>{c.fillStyle=col;c.fillRect(x*s,y*s,s-d,s-d);};
+  const T=(x,y)=>(y<0||y>=H||x<0||x>=W)?-1:top[y][x];
+  for(let y=0;y<Math.min(rows,H);y++)for(let x=0;x<W;x++){const t=top[y][x];if(t<0)continue;
+    if(g.stage===1){ // 윤곽: 외곽선 + 듬성한 칸
+      const edge=[T(x+1,y),T(x-1,y),T(x,y+1),T(x,y-1)].some(v=>v<0);
+      if(edge)px(x,y,SHADE[3]);else if((x+y)%2===0)px(x,y,SHADE[1]);continue;}
+    px(x,y,SHADE[lv[y][x]]);
+  }
+  if(g.item&&rows>=H){c.fillStyle=SHADE[4];c.font=`${Math.max(12,s*2.4)}px "Nanum Gothic Coding", monospace`;c.textAlign='center';c.textBaseline='bottom';c.fillText('['+g.item+']',(IX+14)*s,(IY+4)*s);}
+  if(rows<H){c.fillStyle=G;c.fillRect(0,rows*s,W*s,2);}
+}
+
+/* 시작 */
+(document.fonts?document.fonts.ready:Promise.resolve()).then(runIntro);
+})();
+</script>
